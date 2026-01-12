@@ -4,8 +4,8 @@ After=network.target
 
 [Service]
 Type=simple
-User=klair
-ExecStart=/home/klair/llama.cpp/build/bin/llama-server -m /home/klair/llama.cpp/models/qwen2.5-0.5b-instruct-q4_0.gguf --host 0.0.0.0 --port 8080 --path /home/klair/chat
+User=%USER%
+ExecStart=%HOME%/llama.cpp/build/bin/llama-server -m %HOME%/llama.cpp/models/qwen2.5-0.5b-instruct-q4_0.gguf --host 0.0.0.0 --port 8080
 Restart=on-failure
 RestartSec=5
 

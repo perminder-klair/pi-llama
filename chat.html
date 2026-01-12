@@ -61,9 +61,29 @@
       cursor: pointer;
     }
     #loading { color: #888; font-size: 1.2rem; padding: 10px; }
+    #power {
+      position: fixed;
+      top: 10px;
+      right: 10px;
+      width: 32px;
+      height: 32px;
+      background: #333;
+      border: none;
+      border-radius: 50%;
+      cursor: pointer;
+      opacity: 0.5;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    #power:hover { opacity: 1; background: #c00; }
+    #power svg { width: 16px; height: 16px; fill: #fff; }
   </style>
 </head>
 <body>
+  <button id="power" onclick="shutdown()" title="Shutdown Pi">
+    <svg viewBox="0 0 24 24"><path d="M13 3h-2v10h2V3zm4.83 2.17l-1.42 1.42C17.99 7.86 19 9.81 19 12c0 3.87-3.13 7-7 7s-7-3.13-7-7c0-2.19 1.01-4.14 2.58-5.42L6.17 5.17C4.23 6.82 3 9.26 3 12c0 4.97 4.03 9 9 9s9-4.03 9-9c0-2.74-1.23-5.18-3.17-6.83z"/></svg>
+  </button>
   <div id="chat"></div>
   <div id="bar">
     <input type="text" id="input" placeholder="Type a message..." onkeypress="if(event.key==='Enter')send()">
@@ -120,6 +140,12 @@
       render();
     }
     
+    async function shutdown() {
+      try {
+        await fetch('/cgi-bin/shutdown.cgi');
+      } catch (e) {}
+    }
+
     input.focus();
   </script>
 </body>

@@ -54,7 +54,7 @@ echo
 # Step 2: Install dependencies
 info "Installing dependencies..."
 sudo apt update
-sudo apt install -y git g++ wget build-essential cmake nginx
+sudo apt install -y git g++ wget build-essential cmake nginx fcgiwrap
 success "Dependencies installed"
 echo
 
@@ -134,6 +134,23 @@ fi
 
 sudo chown -R www-data:www-data /var/www/chat
 
+# Setup CGI for shutdown
+info "Setting up shutdown CGI..."
+sudo mkdir -p /var/www/cgi-bin
+if [ -f "$SCRIPT_DIR/shutdown.cgi" ]; then
+    sudo cp "$SCRIPT_DIR/shutdown.cgi" /var/www/cgi-bin/
+    sudo chmod +x /var/www/cgi-bin/shutdown.cgi
+    sudo chown www-data:www-data /var/www/cgi-bin/shutdown.cgi
+    success "Copied shutdown.cgi"
+else
+    info "shutdown.cgi not found, skipping"
+fi
+
+# Allow www-data to run shutdown without password
+echo "www-data ALL=(ALL) NOPASSWD: /sbin/shutdown" | sudo tee /etc/sudoers.d/shutdown > /dev/null
+sudo chmod 440 /etc/sudoers.d/shutdown
+success "Sudoers configured for shutdown"
+
 sudo tee /etc/nginx/sites-available/chat > /dev/null << 'EOF'
 server {
     listen 80;
@@ -155,6 +172,14 @@ server {
 
     location /health {
         proxy_pass http://127.0.0.1:8080;
+    }
+
+    location /cgi-bin/ {
+        gzip off;
+        root /var/www;
+        fastcgi_pass unix:/var/run/fcgiwrap.socket;
+        include fastcgi_params;
+        fastcgi_param SCRIPT_FILENAME /var/www$fastcgi_script_name;
     }
 }
 EOF

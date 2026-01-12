@@ -1,37 +1,19 @@
 # Pi 3 Setup Guide
 
-Initial setup steps for running llama.cpp on a Raspberry Pi 3.
+Manual setup steps for running llama.cpp on a Raspberry Pi 3. For automated setup, use `./setup.sh` instead.
 
 ## System Optimization
 
-### Packages to Remove
+### Packages to Remove (Optional)
 
 | Package | Purpose | Why Remove |
 |---------|---------|------------|
 | `triggerhappy` | Global hotkey daemon | Headless server, no keyboard shortcuts needed |
 | `logrotate` | Rotates/compresses log files | Uses CPU cycles; logs aren't critical for this use |
-| `dphys-swapfile` | Manages swap file on SD card | Swap kills SD cards over time |
 
 ```bash
-sudo apt remove --purge triggerhappy logrotate dphys-swapfile
+sudo apt remove --purge triggerhappy logrotate
 sudo apt autoremove
-```
-
-### Services to Disable
-
-| Service | Purpose | Why Disable |
-|---------|---------|-------------|
-| `bluetooth` | Bluetooth stack | Not needed for LLM server |
-| `hciuart` | Bluetooth UART interface | Related to above |
-| `avahi-daemon` | mDNS/Bonjour discovery | Uses RAM (keep if you want `.local` hostnames) |
-
-```bash
-sudo systemctl disable bluetooth hciuart
-sudo systemctl stop bluetooth hciuart
-
-# Optional - only if you don't need raspberrypi.local
-sudo systemctl disable avahi-daemon
-sudo systemctl stop avahi-daemon
 ```
 
 ## Hardware Considerations
@@ -53,7 +35,7 @@ Pi 3 has **1GB RAM** which limits model choices.
 
 ```bash
 sudo apt update
-sudo apt install git g++ wget build-essential cmake
+sudo apt install git g++ wget build-essential cmake nginx fcgiwrap
 ```
 
 ### Clone and Build
@@ -120,6 +102,41 @@ huggingface-cli download Qwen/Qwen2.5-0.5B-Instruct-GGUF \
 ~/llama.cpp/build/bin/llama-cli \
   -m ~/llama.cpp/models/qwen2.5-0.5b-instruct-q4_0.gguf \
   -cnv -p "You are a helpful assistant."
+```
+
+## Shutdown Button Setup
+
+The chat interface includes a power button to shutdown the Pi remotely. This requires:
+
+### 1. Install fcgiwrap
+```bash
+sudo apt install fcgiwrap
+```
+
+### 2. Setup CGI script
+```bash
+sudo mkdir -p /var/www/cgi-bin
+sudo cp shutdown.cgi /var/www/cgi-bin/
+sudo chmod +x /var/www/cgi-bin/shutdown.cgi
+sudo chown www-data:www-data /var/www/cgi-bin/shutdown.cgi
+```
+
+### 3. Allow passwordless shutdown
+```bash
+echo "www-data ALL=(ALL) NOPASSWD: /sbin/shutdown" | sudo tee /etc/sudoers.d/shutdown
+sudo chmod 440 /etc/sudoers.d/shutdown
+```
+
+### 4. Add to nginx config
+Add this location block to `/etc/nginx/sites-available/chat`:
+```nginx
+location /cgi-bin/ {
+    gzip off;
+    root /var/www;
+    fastcgi_pass unix:/var/run/fcgiwrap.socket;
+    include fastcgi_params;
+    fastcgi_param SCRIPT_FILENAME /var/www$fastcgi_script_name;
+}
 ```
 
 ## Next Steps
