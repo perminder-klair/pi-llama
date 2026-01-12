@@ -1,0 +1,415 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Qwen3 Chat + Tools</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: system-ui;
+      min-height: 100vh;
+      min-height: 100dvh;
+      display: flex;
+      flex-direction: column;
+      background: #1a1a1a;
+      color: #fff;
+    }
+    #header {
+      padding: 15px 20px;
+      background: #222;
+      border-bottom: 1px solid #333;
+      font-size: 1.2rem;
+      font-weight: 500;
+      color: #888;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    #header .tools-badge {
+      background: #2d5a27;
+      color: #8bc34a;
+      padding: 4px 10px;
+      border-radius: 4px;
+      font-size: 0.8rem;
+    }
+    #chat {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-end;
+      padding: 20px;
+      overflow-y: auto;
+    }
+    .msg {
+      padding: 16px 20px;
+      margin: 8px 0;
+      border-radius: 12px;
+      font-size: 1.1rem;
+      line-height: 1.6;
+      max-width: 85%;
+      word-wrap: break-word;
+    }
+    .user {
+      background: #0066cc;
+      align-self: flex-end;
+      margin-left: auto;
+    }
+    .bot {
+      background: #333;
+      align-self: flex-start;
+    }
+    .tool-call {
+      background: #2d3a2d;
+      border-left: 3px solid #8bc34a;
+      align-self: flex-start;
+      font-family: monospace;
+      font-size: 0.95rem;
+    }
+    .tool-call .tool-name {
+      color: #8bc34a;
+      font-weight: bold;
+    }
+    .tool-call .tool-args {
+      color: #aaa;
+      margin-top: 4px;
+    }
+    .tool-result {
+      background: #2a3d4d;
+      border-left: 3px solid #4fc3f7;
+      align-self: flex-start;
+      font-family: monospace;
+      font-size: 0.95rem;
+      color: #4fc3f7;
+    }
+    #bar {
+      display: flex;
+      padding: 20px;
+      padding-right: calc(20px + env(safe-area-inset-right));
+      padding-bottom: calc(20px + env(safe-area-inset-bottom));
+      background: #222;
+      gap: 10px;
+    }
+    #input {
+      flex: 1;
+      min-width: 0;
+      padding: 16px 20px;
+      font-size: 1.1rem;
+      border-radius: 8px;
+      border: none;
+      background: #333;
+      color: #fff;
+    }
+    #input:focus {
+      outline: 2px solid #0066cc;
+    }
+    #send {
+      flex-shrink: 0;
+      padding: 16px 24px;
+      font-size: 1.1rem;
+      background: #0066cc;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    #send:hover {
+      background: #0055aa;
+    }
+    #send:disabled {
+      background: #444;
+      cursor: not-allowed;
+    }
+    #loading {
+      color: #888;
+      font-size: 1rem;
+      padding: 16px 20px;
+      background: #2a2a2a;
+      border-radius: 12px;
+      margin: 8px 0;
+      align-self: flex-start;
+    }
+    .thinking {
+      color: #666;
+      font-size: 0.9rem;
+      margin-top: 8px;
+      padding-top: 8px;
+      border-top: 1px solid #444;
+    }
+    .examples {
+      color: #666;
+      font-size: 0.9rem;
+      padding: 10px 20px;
+      background: #222;
+    }
+    .examples span {
+      color: #888;
+      cursor: pointer;
+      margin-right: 15px;
+    }
+    .examples span:hover {
+      color: #fff;
+    }
+  </style>
+</head>
+<body>
+  <div id="header">
+    <span>Qwen3-30B-A3B</span>
+    <span class="tools-badge">TOOLS</span>
+  </div>
+  <div id="chat"></div>
+  <div class="examples">
+    Try:
+    <span onclick="tryExample('What is the weather in Tokyo?')">Weather in Tokyo</span>
+    <span onclick="tryExample('Calculate 847 * 23')">Calculator</span>
+    <span onclick="tryExample('What time is it?')">Current time</span>
+  </div>
+  <div id="bar">
+    <input type="text" id="input" placeholder="Type a message..." onkeypress="if(event.key==='Enter' && !event.shiftKey)send()">
+    <button id="send" onclick="send()">Send</button>
+  </div>
+
+  <script>
+    const chat = document.getElementById('chat');
+    const input = document.getElementById('input');
+    const sendBtn = document.getElementById('send');
+    let displayMessages = [];
+    let isLoading = false;
+
+    const systemPrompt = "You are Qwen3, a helpful AI assistant with access to tools. Use the available tools when appropriate to answer user questions. Be concise.";
+
+    // Tool definitions
+    const tools = [
+      {
+        type: "function",
+        function: {
+          name: "get_weather",
+          description: "Get current weather for a location",
+          parameters: {
+            type: "object",
+            properties: {
+              location: { type: "string", description: "City name" },
+              unit: { type: "string", enum: ["celsius", "fahrenheit"], description: "Temperature unit" }
+            },
+            required: ["location"]
+          }
+        }
+      },
+      {
+        type: "function",
+        function: {
+          name: "calculator",
+          description: "Perform mathematical calculations",
+          parameters: {
+            type: "object",
+            properties: {
+              expression: { type: "string", description: "Math expression to evaluate, e.g. '15 * 23'" }
+            },
+            required: ["expression"]
+          }
+        }
+      },
+      {
+        type: "function",
+        function: {
+          name: "get_time",
+          description: "Get current date and time",
+          parameters: {
+            type: "object",
+            properties: {
+              timezone: { type: "string", description: "Timezone (optional)" }
+            }
+          }
+        }
+      }
+    ];
+
+    // Mock tool implementations
+    function executeTool(name, args) {
+      switch (name) {
+        case 'get_weather':
+          const temps = { 'Tokyo': 22, 'London': 15, 'New York': 18, 'Paris': 17, 'Sydney': 25 };
+          const conditions = ['sunny', 'cloudy', 'partly cloudy', 'rainy'];
+          const temp = temps[args.location] || Math.floor(Math.random() * 20) + 10;
+          const condition = conditions[Math.floor(Math.random() * conditions.length)];
+          const unit = args.unit || 'celsius';
+          const displayTemp = unit === 'fahrenheit' ? Math.round(temp * 9/5 + 32) : temp;
+          return JSON.stringify({ location: args.location, temperature: displayTemp, unit: unit, condition: condition });
+
+        case 'calculator':
+          try {
+            // Safe eval for basic math
+            const result = Function('"use strict"; return (' + args.expression.replace(/[^0-9+\-*/().%\s]/g, '') + ')')();
+            return JSON.stringify({ expression: args.expression, result: result });
+          } catch (e) {
+            return JSON.stringify({ error: "Invalid expression" });
+          }
+
+        case 'get_time':
+          const now = new Date();
+          return JSON.stringify({
+            datetime: now.toISOString(),
+            local: now.toLocaleString(),
+            timezone: Intl.DateTimeFormat().resolvedOptions().timeZone
+          });
+
+        default:
+          return JSON.stringify({ error: "Unknown tool" });
+      }
+    }
+
+    function render() {
+      const displayed = displayMessages.slice(-30);
+      chat.innerHTML = displayed.map(m => {
+        if (m.type === 'tool-call') {
+          return `<div class="msg tool-call">
+            <div class="tool-name">🔧 ${escapeHtml(m.name)}</div>
+            <div class="tool-args">${escapeHtml(JSON.stringify(m.args, null, 2))}</div>
+          </div>`;
+        }
+        if (m.type === 'tool-result') {
+          return `<div class="msg tool-result">↩ ${escapeHtml(m.result)}</div>`;
+        }
+        let content = escapeHtml(m.text);
+        if (m.thinking) {
+          content += `<div class="thinking">${escapeHtml(m.thinking)}</div>`;
+        }
+        return `<div class="msg ${m.role}">${content}</div>`;
+      }).join('');
+      chat.scrollTop = chat.scrollHeight;
+    }
+
+    function escapeHtml(text) {
+      const div = document.createElement('div');
+      div.textContent = text;
+      return div.innerHTML;
+    }
+
+    function tryExample(text) {
+      input.value = text;
+      input.focus();
+    }
+
+    async function send() {
+      const msg = input.value.trim();
+      if (!msg || isLoading) return;
+
+      isLoading = true;
+      sendBtn.disabled = true;
+
+      displayMessages.push({ role: 'user', text: msg });
+      render();
+      input.value = '';
+
+      // Build API messages from display
+      let apiMessages = [{ role: 'system', content: systemPrompt }];
+
+      // Simple history - just last few user/assistant exchanges
+      const recentMsgs = displayMessages.filter(m => m.role === 'user' || m.role === 'bot').slice(-6);
+      for (const m of recentMsgs) {
+        apiMessages.push({
+          role: m.role === 'user' ? 'user' : 'assistant',
+          content: m.text
+        });
+      }
+
+      await processWithTools(apiMessages);
+
+      isLoading = false;
+      sendBtn.disabled = false;
+      render();
+      input.focus();
+    }
+
+    async function processWithTools(apiMessages) {
+      const maxIterations = 5;
+
+      for (let i = 0; i < maxIterations; i++) {
+        chat.innerHTML += '<div id="loading">' + (i === 0 ? 'Thinking...' : 'Processing tool result...') + '</div>';
+        chat.scrollTop = chat.scrollHeight;
+
+        try {
+          const res = await fetch('/v1/chat/completions', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              messages: apiMessages,
+              tools: tools,
+              max_tokens: 512,
+              temperature: 0.7
+            })
+          });
+
+          const data = await res.json();
+          const choice = data.choices[0];
+          const message = choice.message;
+
+          // Remove loading indicator
+          const loading = document.getElementById('loading');
+          if (loading) loading.remove();
+
+          // Check for tool calls
+          if (message.tool_calls && message.tool_calls.length > 0) {
+            // Add assistant message with tool calls to API messages
+            apiMessages.push({
+              role: 'assistant',
+              content: message.content || null,
+              tool_calls: message.tool_calls
+            });
+
+            // Process each tool call
+            for (const toolCall of message.tool_calls) {
+              const funcName = toolCall.function.name;
+              const funcArgs = JSON.parse(toolCall.function.arguments);
+
+              // Display tool call
+              displayMessages.push({ type: 'tool-call', name: funcName, args: funcArgs });
+              render();
+
+              // Execute tool
+              const result = executeTool(funcName, funcArgs);
+
+              // Display result
+              displayMessages.push({ type: 'tool-result', result: result });
+              render();
+
+              // Add tool result to API messages
+              apiMessages.push({
+                role: 'tool',
+                tool_call_id: toolCall.id,
+                content: result
+              });
+            }
+            // Continue loop to get final response
+            continue;
+          }
+
+          // No tool calls - this is the final response
+          let reply = message.content || '';
+
+          // Handle thinking tags
+          let thinking = null;
+          const thinkMatch = reply.match(/<think>([\s\S]*?)<\/think>/);
+          if (thinkMatch) {
+            thinking = thinkMatch[1].trim();
+            reply = reply.replace(/<think>[\s\S]*?<\/think>/, '').trim();
+          }
+
+          displayMessages.push({ role: 'bot', text: reply, thinking: thinking });
+          return;
+
+        } catch (e) {
+          const loading = document.getElementById('loading');
+          if (loading) loading.remove();
+          displayMessages.push({ role: 'bot', text: 'Error: ' + e.message });
+          return;
+        }
+      }
+
+      displayMessages.push({ role: 'bot', text: 'Error: Too many tool iterations' });
+    }
+
+    input.focus();
+  </script>
+</body>
+</html>

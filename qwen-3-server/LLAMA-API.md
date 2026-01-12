@@ -204,6 +204,112 @@ curl http://localhost:5000/v1/chat/completions \
 
 ---
 
+## Tool Calling (Function Calling)
+
+Requires server started with `--jinja` flag (use `run-server-tools.sh`).
+
+### Example: Weather Tool
+
+**Step 1: Send request with tool definition**
+
+```bash
+curl http://localhost:5000/v1/chat/completions \
+  -H "Content-Type: application/json" \
+  -d '{
+    "messages": [
+      {"role": "user", "content": "What is the weather in Tokyo?"}
+    ],
+    "tools": [
+      {
+        "type": "function",
+        "function": {
+          "name": "get_weather",
+          "description": "Get current weather for a location",
+          "parameters": {
+            "type": "object",
+            "properties": {
+              "location": {
+                "type": "string",
+                "description": "City name"
+              },
+              "unit": {
+                "type": "string",
+                "enum": ["celsius", "fahrenheit"],
+                "description": "Temperature unit"
+              }
+            },
+            "required": ["location"]
+          }
+        }
+      }
+    ]
+  }'
+```
+
+**Step 2: Model responds with tool call**
+
+```json
+{
+  "choices": [{
+    "message": {
+      "role": "assistant",
+      "content": null,
+      "tool_calls": [{
+        "id": "call_abc123",
+        "type": "function",
+        "function": {
+          "name": "get_weather",
+          "arguments": "{\"location\": \"Tokyo\", \"unit\": \"celsius\"}"
+        }
+      }]
+    },
+    "finish_reason": "tool_calls"
+  }]
+}
+```
+
+**Step 3: Send tool result back**
+
+```bash
+curl http://localhost:5000/v1/chat/completions \
+  -H "Content-Type: application/json" \
+  -d '{
+    "messages": [
+      {"role": "user", "content": "What is the weather in Tokyo?"},
+      {"role": "assistant", "content": null, "tool_calls": [{"id": "call_abc123", "type": "function", "function": {"name": "get_weather", "arguments": "{\"location\": \"Tokyo\"}"}}]},
+      {"role": "tool", "tool_call_id": "call_abc123", "content": "{\"temperature\": 22, \"condition\": \"sunny\"}"}
+    ],
+    "tools": [...]
+  }'
+```
+
+**Step 4: Model gives final response**
+
+```json
+{
+  "choices": [{
+    "message": {
+      "role": "assistant",
+      "content": "The weather in Tokyo is currently sunny with a temperature of 22°C."
+    }
+  }]
+}
+```
+
+### Parallel Tool Calls
+
+Enable multiple simultaneous tool calls:
+
+```json
+{
+  "messages": [...],
+  "tools": [...],
+  "parallel_tool_calls": true
+}
+```
+
+---
+
 ## Thinking Mode (Qwen3)
 
 Qwen3 models support a "thinking" mode where the model reasons through problems before answering. Output appears in `<think>...</think>` tags.

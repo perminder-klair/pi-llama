@@ -22,11 +22,17 @@ This will:
 
 ## Usage
 
+**Basic chat:**
 ```bash
 ./run-server.sh
 ```
-
 Open http://localhost:5000 in your browser.
+
+**With tool calling:**
+```bash
+./run-server-tools.sh
+```
+Open http://localhost:5000/chat_tools.html
 
 ## Files
 
@@ -34,7 +40,10 @@ Open http://localhost:5000 in your browser.
 |------|-------------|
 | `setup.sh` | One-time setup script |
 | `run-server.sh` | Start the server on port 5000 |
+| `run-server-tools.sh` | Start server with tool calling enabled |
 | `chat.html` | Web chat interface |
+| `chat_tools.html` | Chat interface with tool calling demo |
+| `LLAMA-API.md` | API reference documentation |
 
 ## Model
 
@@ -63,3 +72,30 @@ For systems with AMD iGPU (e.g., UM760 with 8GB VRAM):
 | 35+ | 8GB+ | May OOM |
 
 Monitor usage: `watch -n 1 rocm-smi`
+
+## Features
+
+### Thinking Mode
+
+Qwen3 can show reasoning before answering. Add `/think` or `/no_think` to prompts:
+
+```
+/think What is 15% of 847?
+```
+
+### Tool Calling
+
+Use `run-server-tools.sh` (adds `--jinja` flag) to enable function calling. See `LLAMA-API.md` for API examples.
+
+Example tools in `chat_tools.html`:
+- Weather lookup
+- Calculator
+- Current time
+
+### API Reference
+
+See `LLAMA-API.md` for full endpoint documentation including:
+- OpenAI-compatible endpoints (`/v1/chat/completions`)
+- Native llama.cpp endpoints
+- Tool calling examples
+- Thinking mode usage
