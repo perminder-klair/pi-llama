@@ -14,7 +14,7 @@ This is a Raspberry Pi setup for running a self-hosted LLaMA chat server using l
                   +--> [llama-server :8080] (OpenAI-compatible API)
 ```
 
-- **llama-server**: llama.cpp server running the Qwen 2.5 0.5B model, exposes OpenAI-compatible `/v1/chat/completions` endpoint
+- **llama-server**: llama.cpp server running the Qwen3 0.6B model, exposes OpenAI-compatible `/v1/chat/completions` endpoint
 - **nginx**: Reverse proxy serving the static chat UI and proxying API calls to llama-server
 - **chat.html**: Minimal single-file chat interface that calls the local LLM API
 
@@ -30,7 +30,7 @@ This is a Raspberry Pi setup for running a self-hosted LLaMA chat server using l
 llama.cpp must be built and installed at `~/llama.cpp/`:
 - Binary: `~/llama.cpp/build/bin/llama-server`
 - CLI: `~/llama.cpp/build/bin/llama-cli`
-- Model: `~/llama.cpp/models/qwen2.5-0.5b-instruct-q4_0.gguf`
+- Model: `~/llama.cpp/models/qwen3-0.6b-q4_0.gguf`
 
 ## Service Management
 

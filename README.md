@@ -15,7 +15,7 @@ cd pi-llama
 The script will:
 - Install dependencies (git, cmake, nginx, etc.)
 - Clone and build llama.cpp
-- Download the Qwen 2.5 0.5B model
+- Download the Qwen3 0.6B model
 - Configure the systemd service and nginx
 
 ## Manual Setup

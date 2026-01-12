@@ -24,7 +24,7 @@ Pi 3 has **1GB RAM** which limits model choices.
 
 | Model | RAM Needed | Speed | Pi 3 Compatible |
 |-------|-----------|-------|-----------------|
-| Qwen2.5-0.5B Q4_0 | ~400MB | 2-3 tok/s | Yes |
+| Qwen3-0.6B Q4_0 | ~430MB | 2-3 tok/s | Yes |
 | TinyLlama 1.1B Q4_0 | ~800MB | 1-2 tok/s | Yes |
 | Phi-2 2.7B | ~2GB+ | - | No |
 | Llama 7B | ~4GB+ | - | No |
@@ -63,19 +63,19 @@ Binaries will be in `~/llama.cpp/`.
 
 ## Model Download
 
-### Qwen2.5-0.5B-Instruct (Recommended)
+### Qwen3-0.6B (Recommended)
 
 **wget method:**
 ```bash
 mkdir -p ~/llama.cpp/models && cd ~/llama.cpp/models
-wget https://huggingface.co/Qwen/Qwen2.5-0.5B-Instruct-GGUF/resolve/main/qwen2.5-0.5b-instruct-q4_0.gguf
+wget https://huggingface.co/ggml-org/Qwen3-0.6B-GGUF/resolve/main/qwen3-0.6b-q4_0.gguf
 ```
 
 **huggingface-cli method:**
 ```bash
 pip install huggingface_hub --break-system-packages
-huggingface-cli download Qwen/Qwen2.5-0.5B-Instruct-GGUF \
-  qwen2.5-0.5b-instruct-q4_0.gguf \
+huggingface-cli download ggml-org/Qwen3-0.6B-GGUF \
+  qwen3-0.6b-q4_0.gguf \
   --local-dir ~/llama.cpp/models
 ```
 
@@ -93,14 +93,14 @@ huggingface-cli download Qwen/Qwen2.5-0.5B-Instruct-GGUF \
 **Basic test:**
 ```bash
 ~/llama.cpp/build/bin/llama-cli \
-  -m ~/llama.cpp/models/qwen2.5-0.5b-instruct-q4_0.gguf \
+  -m ~/llama.cpp/models/qwen3-0.6b-q4_0.gguf \
   -p "Hello from Raspberry Pi!" -n 50
 ```
 
 **Interactive chat:**
 ```bash
 ~/llama.cpp/build/bin/llama-cli \
-  -m ~/llama.cpp/models/qwen2.5-0.5b-instruct-q4_0.gguf \
+  -m ~/llama.cpp/models/qwen3-0.6b-q4_0.gguf \
   -cnv -p "You are a helpful assistant."
 ```
 

@@ -6,8 +6,8 @@ set -e
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 LLAMA_DIR="$HOME/llama.cpp"
-MODEL_NAME="qwen2.5-0.5b-instruct-q4_0.gguf"
-MODEL_URL="https://huggingface.co/Qwen/Qwen2.5-0.5B-Instruct-GGUF/resolve/main/$MODEL_NAME"
+MODEL_NAME="qwen3-0.6b-q4_0.gguf"
+MODEL_URL="https://huggingface.co/ggml-org/Qwen3-0.6B-GGUF/resolve/main/$MODEL_NAME"
 
 # Colors
 RED='\033[0;31m'
