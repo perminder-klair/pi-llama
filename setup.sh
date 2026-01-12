@@ -1,13 +1,20 @@
 #!/bin/bash
-set -e
+set -eo pipefail
 
 # Pi LLaMA Setup Script
 # Automated installation for Raspberry Pi
 
+VERSION="1.0.0"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 LLAMA_DIR="$HOME/llama.cpp"
 MODEL_NAME="qwen2.5-0.5b-instruct-q4_0.gguf"
 MODEL_URL="https://huggingface.co/Qwen/Qwen2.5-0.5B-Instruct-GGUF/resolve/main/$MODEL_NAME"
+LOG_FILE="/tmp/pi-llama-setup.log"
+ASSUME_YES=false
+
+# Setup logging
+rm -f "$LOG_FILE"
+exec > >(tee -a "$LOG_FILE") 2>&1
 
 # Colors
 RED='\033[0;31m'
@@ -19,9 +26,52 @@ info() { echo -e "${YELLOW}[INFO]${NC} $1"; }
 success() { echo -e "${GREEN}[OK]${NC} $1"; }
 error() { echo -e "${RED}[ERROR]${NC} $1"; exit 1; }
 
+usage() {
+    cat << EOF
+Pi LLaMA Setup Script v$VERSION
+
+Usage: ./setup.sh [options]
+
+Options:
+  -y, --yes     Assume yes to all prompts (non-interactive)
+  -h, --help    Show this help message
+
+Logs are written to: $LOG_FILE
+EOF
+}
+
+# Parse arguments
+while [[ $# -gt 0 ]]; do
+    case $1 in
+        -y|--yes) ASSUME_YES=true; shift ;;
+        -h|--help) usage; exit 0 ;;
+        *) echo "Unknown option: $1"; usage; exit 1 ;;
+    esac
+done
+
 confirm() {
+    if $ASSUME_YES; then return 0; fi
     read -p "$1 [y/N] " response
     [[ "$response" =~ ^[Yy]$ ]]
+}
+
+check_internet() {
+    info "Checking internet connectivity..."
+    if ! wget -q --spider https://huggingface.co 2>/dev/null; then
+        error "No internet connection to huggingface.co"
+    fi
+    success "Internet OK"
+}
+
+detect_arch() {
+    ARCH=$(uname -m)
+    case $ARCH in
+        armv7l) PI_MODEL="Pi 3/4 (32-bit)" ;;
+        aarch64) PI_MODEL="Pi 4/5 (64-bit)" ;;
+        x86_64) PI_MODEL="x86_64" ;;
+        *) PI_MODEL="Unknown ($ARCH)" ;;
+    esac
+    info "Architecture: $PI_MODEL"
 }
 
 # Pre-flight checks
@@ -34,10 +84,14 @@ if ! sudo -v; then
 fi
 
 echo "================================"
-echo "  Pi LLaMA Setup"
+echo "  Pi LLaMA Setup v$VERSION"
 echo "  User: $USER"
 echo "  Home: $HOME"
 echo "================================"
+echo
+
+detect_arch
+check_internet
 echo
 
 # Step 1: System optimization
@@ -192,7 +246,27 @@ sudo systemctl enable nginx
 success "nginx configured"
 echo
 
+# Verify services
+info "Verifying services..."
+sleep 2
+
+if systemctl is-active --quiet llama; then
+    success "llama service running"
+else
+    error "llama service failed to start. Check: journalctl -u llama -xe"
+fi
+
+if systemctl is-active --quiet nginx; then
+    success "nginx service running"
+else
+    error "nginx service failed to start. Check: journalctl -u nginx -xe"
+fi
+
+# Save version
+echo "$VERSION" > "$SCRIPT_DIR/.pi-llama-version"
+
 # Done
+echo
 echo "================================"
 echo -e "${GREEN}Setup complete!${NC}"
 echo "================================"
@@ -204,4 +278,6 @@ echo
 echo "Useful commands:"
 echo "  sudo systemctl status llama"
 echo "  journalctl -u llama -f"
+echo
+echo "Log file: $LOG_FILE"
 echo
