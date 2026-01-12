@@ -75,7 +75,7 @@
     const input = document.getElementById('input');
     let messages = [];
     
-    const systemPrompt = "You are a silly  assistant. Reply in 5-10 words only.";
+    const systemPrompt = "You are a witty, clever assistant with a dry sense of humor. Be helpful but sneak in subtle jokes or wordplay. Keep replies brief (1-2 sentences).";
     
     function render() {
       const last10 = messages.slice(-10);
@@ -108,7 +108,7 @@
               ...history,
               { role: 'user', content: msg }
             ],
-            max_tokens: 32
+            max_tokens: 64
           })
         });
         const data = await res.json();
