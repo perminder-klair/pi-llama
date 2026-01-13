@@ -1,74 +1,137 @@
-# Pi LLaMA
+# Pi-LLaMA
 
-A Raspberry Pi setup for running a self-hosted LLaMA chat server using llama.cpp.
+A unified setup for running a self-hosted LLaMA chat server using llama.cpp. Works on both Raspberry Pi and desktop systems.
 
 ## Quick Start
 
-Run the setup script on a fresh Raspberry Pi OS:
+### 1. Clone and configure
 
 ```bash
 git clone https://github.com/yourusername/pi-llama.git
 cd pi-llama
-./setup.sh
+
+# Copy a preset config
+cp configs/pi-llama.conf.pi pi-llama.conf      # For Raspberry Pi
+cp configs/pi-llama.conf.desktop pi-llama.conf # For Desktop
+```
+
+### 2. Run setup
+
+```bash
+./scripts/setup.sh
 ```
 
 The script will:
-- Install dependencies (git, cmake, nginx, nodejs, etc.)
+- Install dependencies (git, cmake, nodejs, etc.)
 - Clone and build llama.cpp
-- Download the Qwen 2.5 0.5B model
-- Build and deploy the React chat app
-- Configure the systemd service and nginx
+- Download the appropriate model
+- Build the React chat app
+- (Pi only) Configure systemd service and nginx
+
+### 3. Start the server
+
+**Desktop:**
+```bash
+./scripts/server.sh
+# Access at http://localhost:5000
+```
+
+**Pi (automatic via systemd):**
+```bash
+# Access at http://<pi-ip>
+```
 
 ## Chat Interfaces
 
-After setup, access these routes in your browser:
-
 | Route | Description |
 |-------|-------------|
-| `/` | Pi Chat - Simple chat with witty assistant |
-| `/qwen3` | Qwen3 Chat - With thinking tags support |
-| `/tools` | Qwen3 + Tools - Calculator, weather, time |
-
-## Manual Setup
-
-For step-by-step manual installation, see [SETUP.md](SETUP.md).
+| `/` | Simple chat interface |
+| `/qwen3` | Chat with thinking tags support |
+| `/tools` | Chat with tool calling (calculator, weather, time) |
 
 ## Architecture
 
 ```
-[Browser] --> [nginx :80] --> [React App]
+[Browser] --> [nginx :80] --> [React App]    (Pi)
                   |
-                  +--> [llama-server :8080] (OpenAI-compatible API)
+                  +--> [llama-server :5000]
+
+[Browser] --> [llama-server :5000] --> [React App + API]  (Desktop)
 ```
+
+## Project Structure
+
+```
+pi-llama/
+├── pi-llama.conf              # Your configuration
+├── scripts/
+│   ├── setup.sh               # Unified setup script
+│   ├── server.sh              # Start the server
+│   ├── chat.sh                # CLI chat interface
+│   └── build.sh               # Build React client
+├── configs/
+│   ├── pi-llama.conf.pi       # Pi preset
+│   ├── pi-llama.conf.desktop  # Desktop preset
+│   └── *.template             # Service templates
+├── docs/
+│   ├── CONFIGURATION.md       # Config file reference
+│   └── LLAMA-API.md           # API documentation
+├── client/                    # React chat application
+└── memory-api/                # Memory API service
+```
+
+## Configuration
+
+Edit `pi-llama.conf` to customize:
+
+| Setting | Pi Default | Desktop Default |
+|---------|------------|-----------------|
+| MODEL_NAME | qwen2.5-0.5b | Qwen3-30B-A3B |
+| SERVER_PORT | 5000 | 5000 |
+| GPU_LAYERS | 0 | 25 |
+| CONTEXT_SIZE | 2048 | 8192 |
+| ENABLE_TOOL_CALLING | false | true |
+
+See [docs/CONFIGURATION.md](docs/CONFIGURATION.md) for all options.
 
 ## Useful Commands
 
 ```bash
-# Check status
+# Start server manually
+./scripts/server.sh
+
+# CLI chat
+./scripts/chat.sh
+
+# Rebuild React app
+./scripts/build.sh
+
+# (Pi) Check service status
 sudo systemctl status llama
 
-# View logs
+# (Pi) View logs
 journalctl -u llama -f
-
-# Stop/restart
-sudo systemctl stop llama
-sudo systemctl restart llama
-
-# Rebuild chat app
-./build.sh
 ```
 
-## Access
-
-Open `http://<pi-ip>` in your browser. The chat interface loads directly, with nginx proxying API calls to llama-server on port 8080.
-
-## Files
+## Files Reference
 
 | File | Description |
 |------|-------------|
-| `setup.sh` | Automated setup script |
-| `build.sh` | Build the React chat app |
-| `client/` | React chat application source |
-| `llama.service` | systemd service definition |
-| `nginx-chat` | nginx site configuration |
-| `SETUP.md` | Manual setup guide |
+| `scripts/setup.sh` | Automated setup (apt/pacman) |
+| `scripts/server.sh` | Start llama-server |
+| `scripts/chat.sh` | Interactive CLI chat |
+| `scripts/build.sh` | Build React app |
+| `configs/pi-llama.conf.*` | Configuration presets |
+| `docs/LLAMA-API.md` | llama-server API reference |
+
+## Requirements
+
+**Raspberry Pi:**
+- Raspberry Pi 4/5 with 2GB+ RAM
+- Raspberry Pi OS (64-bit recommended)
+- 4GB+ free disk space
+
+**Desktop:**
+- 24GB+ RAM (for Qwen3-30B model)
+- 25GB+ free disk space
+- Arch Linux, Ubuntu, or Fedora

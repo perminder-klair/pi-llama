@@ -4,60 +4,100 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-This is a Raspberry Pi setup for running a self-hosted LLaMA chat server using llama.cpp. It provides a simple web-based chat interface that connects to a locally running LLM.
+Pi-LLaMA is a unified setup for running a self-hosted LLaMA chat server using llama.cpp. It works on both Raspberry Pi and desktop systems, with configuration-based environment detection.
 
 ## Architecture
 
+**Desktop mode:**
 ```
-[Browser] --> [nginx :80] --> [chat.html]
-                  |
-                  +--> [llama-server :8080] (OpenAI-compatible API)
+[Browser] --> [llama-server :5000] --> [React App + API]
 ```
 
-- **llama-server**: llama.cpp server running the Qwen 2.5 0.5B model, exposes OpenAI-compatible `/v1/chat/completions` endpoint
-- **nginx**: Reverse proxy serving the static chat UI and proxying API calls to llama-server
-- **chat.html**: Minimal single-file chat interface that calls the local LLM API
+**Pi mode:**
+```
+[Browser] --> [nginx :80] --> [React App]
+                  |
+                  +--> [llama-server :5000] (OpenAI-compatible API)
+```
+
+## Project Structure
+
+```
+pi-llama/
+├── pi-llama.conf              # User configuration (created from preset)
+├── scripts/
+│   ├── common.sh              # Shared functions
+│   ├── setup.sh               # Unified setup (apt/pacman)
+│   ├── server.sh              # Start llama-server
+│   ├── chat.sh                # CLI chat interface
+│   └── build.sh               # Build React client
+├── configs/
+│   ├── pi-llama.conf.pi       # Pi preset
+│   ├── pi-llama.conf.desktop  # Desktop preset
+│   ├── llama.service.template # Systemd template
+│   └── nginx-chat.template    # Nginx template
+├── docs/
+│   ├── CONFIGURATION.md       # Config reference
+│   └── LLAMA-API.md           # API documentation
+├── client/                    # React chat application
+└── memory-api/                # Memory API service
+```
 
 ## Key Files
 
-- `llama.service` - systemd service definition for llama-server
-- `chat.html` - Web chat interface (deploys to `/var/www/chat/`)
-- `llm-server.sh` - Script to manually start llama-server
-- `llm-chat.sh` - Script to run interactive CLI chat
+- `pi-llama.conf` - Main configuration file (environment, model, ports, etc.)
+- `scripts/setup.sh` - Unified setup script (handles both apt and pacman)
+- `scripts/server.sh` - Start llama-server with config-based parameters
+- `client/` - React chat application source
+
+## Configuration
+
+The project uses `pi-llama.conf` for all settings:
+
+```bash
+# Create config from preset
+cp configs/pi-llama.conf.desktop pi-llama.conf  # Desktop
+cp configs/pi-llama.conf.pi pi-llama.conf       # Pi
+```
+
+Key settings:
+- `ENVIRONMENT`: "pi" or "desktop"
+- `MODEL_NAME`: GGUF model filename
+- `SERVER_PORT`: Default 5000
+- `GPU_LAYERS`: GPU offload layers (0 for CPU-only)
+- `ENABLE_TOOL_CALLING`: Enable --jinja for function calling
 
 ## External Dependencies
 
-llama.cpp must be built and installed at `~/llama.cpp/`:
+llama.cpp at `~/llama.cpp/`:
 - Binary: `~/llama.cpp/build/bin/llama-server`
 - CLI: `~/llama.cpp/build/bin/llama-cli`
-- Model: `~/llama.cpp/models/qwen2.5-0.5b-instruct-q4_0.gguf`
+- Models: `~/llama.cpp/models/`
 
-## Service Management
+## Common Commands
 
 ```bash
-# Start/stop/restart the LLM server
-sudo systemctl start llama
-sudo systemctl stop llama
-sudo systemctl restart llama
+# Setup (installs deps, builds llama.cpp, downloads model)
+./scripts/setup.sh
 
-# View logs
-journalctl -u llama -f
+# Start server
+./scripts/server.sh
 
-# Check status
+# CLI chat
+./scripts/chat.sh
+
+# Rebuild React app
+./scripts/build.sh
+
+# (Pi) Service management
 sudo systemctl status llama
-```
-
-## Deployment
-
-After modifying `chat.html`, copy it to the web directory:
-```bash
-sudo cp chat.html /var/www/chat/
-sudo chown www-data:www-data /var/www/chat/chat.html
-```
-
-To update the systemd service:
-```bash
-sudo cp llama.service /etc/systemd/system/
-sudo systemctl daemon-reload
 sudo systemctl restart llama
+journalctl -u llama -f
 ```
+
+## Development Notes
+
+- Port is unified to 5000 for all environments
+- Scripts source `scripts/common.sh` for shared functions
+- Config uses shell variable syntax (sourceable with `source pi-llama.conf`)
+- Templates use `%PLACEHOLDER%` syntax for sed substitution

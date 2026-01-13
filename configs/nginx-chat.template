@@ -1,5 +1,5 @@
 server {
-    listen 80;
+    listen %NGINX_PORT%;
     server_name _;
 
     root /var/www/chat;
@@ -10,14 +10,14 @@ server {
     }
 
     location /v1/ {
-        proxy_pass http://127.0.0.1:8080;
+        proxy_pass http://127.0.0.1:%LLAMA_PORT%;
         proxy_http_version 1.1;
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
     }
 
     location /health {
-        proxy_pass http://127.0.0.1:8080;
+        proxy_pass http://127.0.0.1:%LLAMA_PORT%;
     }
 
     location /cgi-bin/ {
