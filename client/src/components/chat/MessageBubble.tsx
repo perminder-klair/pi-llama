@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import ReactMarkdown from 'react-markdown'
 import { cn } from '@/lib/utils'
 import { ChevronDown, ChevronRight } from 'lucide-react'
 import type { BaseMessage } from '@/lib/chat-types'
@@ -18,7 +19,13 @@ export function MessageBubble({ message }: MessageBubbleProps) {
         isUser ? 'bg-chat-accent self-end ml-auto' : 'bg-chat-secondary self-start'
       )}
     >
-      <div>{message.text}</div>
+      {isUser ? (
+        <div>{message.text}</div>
+      ) : (
+        <ReactMarkdown className="prose prose-invert">
+          {message.text}
+        </ReactMarkdown>
+      )}
 
       {message.thinking && (
         <div className="mt-2 pt-2 border-t border-chat-thinking-border">
