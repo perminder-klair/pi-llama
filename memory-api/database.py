@@ -12,7 +12,7 @@ import httpx
 DB_PATH = Path(__file__).parent / "memories.db"
 
 # llama-server embedding endpoint
-EMBEDDING_URL = "http://localhost:8080/embedding"
+EMBEDDING_URL = "http://localhost:5000/embedding"
 
 
 def get_connection() -> sqlite3.Connection:
@@ -50,7 +50,14 @@ async def get_embedding(text: str) -> Optional[list[float]]:
             )
             if response.status_code == 200:
                 data = response.json()
-                # llama-server returns {"embedding": [...]}
+                # llama-server returns [{"index": 0, "embedding": [[...]]}]
+                if isinstance(data, list) and len(data) > 0:
+                    embedding = data[0].get("embedding")
+                    # Handle nested [[...]] format
+                    if isinstance(embedding, list) and len(embedding) > 0 and isinstance(embedding[0], list):
+                        return embedding[0]
+                    return embedding
+                # Fallback for simple {"embedding": [...]} format
                 return data.get("embedding")
             return None
     except Exception as e:

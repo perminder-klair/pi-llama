@@ -1,5 +1,8 @@
 import type { ToolDefinition } from './chat-types'
 
+// Memory API URL - uses proxy in dev, direct URL in production
+const MEMORY_API_URL = import.meta.env.VITE_MEMORY_API_URL || ''
+
 // Tool definitions for the API
 export const toolDefinitions: ToolDefinition[] = [
   {
@@ -104,7 +107,7 @@ export async function executeTool(
   switch (name) {
     case 'save_memory': {
       try {
-        const response = await fetch('/memories', {
+        const response = await fetch(`${MEMORY_API_URL}/memories`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -129,7 +132,7 @@ export async function executeTool(
     case 'recall_memories': {
       try {
         const query = encodeURIComponent(args.query as string)
-        const response = await fetch(`/memories/search?q=${query}&limit=5`)
+        const response = await fetch(`${MEMORY_API_URL}/memories/search?q=${query}&limit=5`)
         const data = await response.json()
         if (data.results && data.results.length > 0) {
           return JSON.stringify({
