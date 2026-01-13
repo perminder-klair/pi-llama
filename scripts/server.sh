@@ -2,12 +2,47 @@
 set -e
 
 # Pi-LLaMA Server Start Script
-# Reads configuration from pi-llama.conf
+# Starts memory-api and llama-server
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
 source "$SCRIPT_DIR/common.sh"
 load_config
 detect_system
+
+# Track PIDs for cleanup
+MEMORY_PID=""
+
+cleanup() {
+    echo
+    info "Shutting down..."
+    if [ -n "$MEMORY_PID" ] && kill -0 "$MEMORY_PID" 2>/dev/null; then
+        kill "$MEMORY_PID" 2>/dev/null
+        success "Memory API stopped"
+    fi
+}
+trap cleanup EXIT
+
+# Start memory-api in background
+info "Starting memory-api on port 4000..."
+cd "$PROJECT_ROOT/memory-api"
+if [ ! -d "venv" ]; then
+    info "Creating Python virtual environment..."
+    python3 -m venv venv
+    ./venv/bin/pip install --upgrade pip
+    ./venv/bin/pip install -r requirements.txt
+fi
+./venv/bin/python main.py &
+MEMORY_PID=$!
+cd "$PROJECT_ROOT"
+
+# Wait for memory-api to be ready
+sleep 2
+if curl -s http://localhost:4000/ > /dev/null 2>&1; then
+    success "Memory API ready at http://localhost:4000"
+else
+    info "Memory API starting..."
+fi
 
 MODEL_PATH="$MODEL_DIR/$MODEL_NAME"
 SERVER_BIN="$LLAMA_DIR/build/bin/llama-server"
@@ -59,11 +94,13 @@ echo "  Pi-LLaMA Server"
 echo "  Environment: $ENVIRONMENT"
 echo "================================"
 info "Model: $MODEL_NAME"
-info "URL: http://${SERVER_HOST}:${SERVER_PORT}"
+info "LLaMA Server: http://${SERVER_HOST}:${SERVER_PORT}"
+info "Memory API: http://localhost:4000"
 [ "${GPU_LAYERS:-0}" -gt 0 ] && info "GPU Layers: $GPU_LAYERS"
 [ "${ENABLE_TOOL_CALLING:-false}" = "true" ] && info "Tool calling: enabled"
 echo
 echo "Press Ctrl+C to stop"
 echo
 
-exec $CMD
+# Run llama-server (not exec, so cleanup trap runs)
+$CMD
