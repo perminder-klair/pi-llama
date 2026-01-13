@@ -13,10 +13,21 @@ cd pi-llama
 ```
 
 The script will:
-- Install dependencies (git, cmake, nginx, etc.)
+- Install dependencies (git, cmake, nginx, nodejs, etc.)
 - Clone and build llama.cpp
 - Download the Qwen 2.5 0.5B model
+- Build and deploy the React chat app
 - Configure the systemd service and nginx
+
+## Chat Interfaces
+
+After setup, access these routes in your browser:
+
+| Route | Description |
+|-------|-------------|
+| `/` | Pi Chat - Simple chat with witty assistant |
+| `/qwen3` | Qwen3 Chat - With thinking tags support |
+| `/tools` | Qwen3 + Tools - Calculator, weather, time |
 
 ## Manual Setup
 
@@ -25,7 +36,7 @@ For step-by-step manual installation, see [SETUP.md](SETUP.md).
 ## Architecture
 
 ```
-[Browser] --> [nginx :80] --> [chat.html]
+[Browser] --> [nginx :80] --> [React App]
                   |
                   +--> [llama-server :8080] (OpenAI-compatible API)
 ```
@@ -42,6 +53,9 @@ journalctl -u llama -f
 # Stop/restart
 sudo systemctl stop llama
 sudo systemctl restart llama
+
+# Rebuild chat app
+./build.sh
 ```
 
 ## Access
@@ -53,6 +67,8 @@ Open `http://<pi-ip>` in your browser. The chat interface loads directly, with n
 | File | Description |
 |------|-------------|
 | `setup.sh` | Automated setup script |
-| `chat.html` | Web chat interface |
+| `build.sh` | Build the React chat app |
+| `client/` | React chat application source |
 | `llama.service` | systemd service definition |
+| `nginx-chat` | nginx site configuration |
 | `SETUP.md` | Manual setup guide |

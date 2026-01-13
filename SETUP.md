@@ -35,7 +35,7 @@ Pi 3 has **1GB RAM** which limits model choices.
 
 ```bash
 sudo apt update
-sudo apt install git g++ wget build-essential cmake nginx fcgiwrap
+sudo apt install git g++ wget build-essential cmake nginx fcgiwrap nodejs npm
 ```
 
 ### Clone and Build
@@ -139,6 +139,66 @@ location /cgi-bin/ {
 }
 ```
 
+## Building the Chat App
+
+The chat interface is a React app that needs to be built:
+
+```bash
+cd client
+npm install
+npm run build
+```
+
+Or use the build script:
+```bash
+./build.sh
+```
+
+The build output is in `client/.output/public/`.
+
+## Deploying to nginx
+
+Create a symlink to serve the React app:
+
+```bash
+sudo rm -rf /var/www/chat
+sudo ln -sf /path/to/pi-llama/client/.output/public /var/www/chat
+```
+
+Update nginx config at `/etc/nginx/sites-available/chat`:
+```nginx
+server {
+    listen 80;
+    server_name _;
+
+    root /var/www/chat;
+    index index.html;
+
+    location / {
+        try_files $uri $uri/index.html /index.html;
+    }
+
+    location /v1/ {
+        proxy_pass http://127.0.0.1:8080;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+    }
+
+    location /health {
+        proxy_pass http://127.0.0.1:8080;
+    }
+
+    location /cgi-bin/ {
+        gzip off;
+        root /var/www;
+        fastcgi_pass unix:/var/run/fcgiwrap.socket;
+        include fastcgi_params;
+        fastcgi_param SCRIPT_FILENAME /var/www$fastcgi_script_name;
+    }
+}
+```
+
 ## Next Steps
 
-See [README.md](README.md) for systemd service setup and nginx configuration.
+See [README.md](README.md) for systemd service setup and available chat routes.

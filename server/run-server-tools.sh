@@ -28,4 +28,4 @@ exec "$LLAMA_DIR/build/bin/llama-server" \
     -ngl 25 \
     -t 8 \
     --jinja \
-    --path "$SCRIPT_DIR"
+    --path "$SCRIPT_DIR/../client/.output/public"

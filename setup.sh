@@ -108,7 +108,7 @@ echo
 # Step 2: Install dependencies
 info "Installing dependencies..."
 sudo apt update
-sudo apt install -y git g++ wget build-essential cmake nginx fcgiwrap
+sudo apt install -y git g++ wget build-essential cmake nginx fcgiwrap nodejs npm
 success "Dependencies installed"
 echo
 
@@ -175,18 +175,20 @@ sudo systemctl restart llama
 success "llama service installed and started"
 echo
 
-# Step 6: Setup nginx
-info "Setting up nginx..."
-sudo mkdir -p /var/www/chat
-
-if [ -f "$SCRIPT_DIR/chat.html" ]; then
-    sudo cp "$SCRIPT_DIR/chat.html" /var/www/chat/
-    success "Copied chat.html"
-else
-    error "chat.html not found in $SCRIPT_DIR"
+# Step 6: Build and deploy React app
+info "Building React chat app..."
+cd "$SCRIPT_DIR/client"
+if [ ! -d "node_modules" ]; then
+    npm install
 fi
+npm run build
+cd "$SCRIPT_DIR"
+success "React app built"
 
-sudo chown -R www-data:www-data /var/www/chat
+info "Setting up nginx..."
+sudo rm -rf /var/www/chat
+sudo ln -sf "$SCRIPT_DIR/client/.output/public" /var/www/chat
+success "Linked chat app"
 
 # Setup CGI for shutdown
 info "Setting up shutdown CGI..."
@@ -211,10 +213,10 @@ server {
     server_name _;
 
     root /var/www/chat;
-    index chat.html;
+    index index.html;
 
     location / {
-        try_files $uri $uri/ /chat.html;
+        try_files $uri $uri/index.html /index.html;
     }
 
     location /v1/ {

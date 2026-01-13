@@ -22,4 +22,4 @@ exec "$LLAMA_DIR/build/bin/llama-server" \
     -c 8192 \
     -ngl 25 \
     -t 8 \
-    --path "$SCRIPT_DIR"
+    --path "$SCRIPT_DIR/../client/.output/public"
