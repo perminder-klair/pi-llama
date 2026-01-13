@@ -24,14 +24,14 @@ cleanup() {
 trap cleanup EXIT
 
 # Start memory-api in background
-info "Starting memory-api on port 3000..."
+info "Starting memory-api on port 4000..."
 cd "$PROJECT_ROOT/memory-api"
 ./venv/bin/python main.py &
 MEMORY_PID=$!
 
 # Wait for memory-api to be ready
 sleep 2
-if curl -s http://localhost:3000/ > /dev/null 2>&1; then
+if curl -s http://localhost:4000/ > /dev/null 2>&1; then
     success "Memory API ready"
 else
     info "Memory API starting (may take a moment)..."

@@ -78,5 +78,7 @@ def remove_memory(memory_id: int):
 
 
 if __name__ == "__main__":
+    import os
     import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=3000)
+    port = int(os.environ.get("MEMORY_API_PORT", 4000))
+    uvicorn.run(app, host="0.0.0.0", port=port)

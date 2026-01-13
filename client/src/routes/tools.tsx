@@ -17,6 +17,7 @@ import type {
   ChatCompletionMessage,
   ToolCall,
 } from '@/lib/chat-types'
+import { env } from '@/env'
 
 export const Route = createFileRoute('/tools')({
   component: ToolsChat,
@@ -56,7 +57,7 @@ function ToolsChat() {
 
     for (let i = 0; i < maxIterations; i++) {
       try {
-        const res = await fetch('/v1/chat/completions', {
+        const res = await fetch(`${env.VITE_API_URL}/v1/chat/completions`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({

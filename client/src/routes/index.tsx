@@ -2,6 +2,7 @@ import { createFileRoute } from '@tanstack/react-router'
 import { useState, useRef, useEffect } from 'react'
 import { Power } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { env } from '@/env'
 
 export const Route = createFileRoute('/')({
   component: Chat,
@@ -43,7 +44,7 @@ function Chat() {
         content: m.text,
       }))
 
-      const res = await fetch('/v1/chat/completions', {
+      const res = await fetch(`${env.VITE_API_URL}/v1/chat/completions`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

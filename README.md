@@ -55,8 +55,11 @@ The script will:
 [Browser] --> [nginx :80] --> [React App]    (Pi)
                   |
                   +--> [llama-server :5000]
+                  +--> [memory-api :4000]
 
 [Browser] --> [llama-server :5000] --> [React App + API]  (Desktop)
+                  |
+                  +--> [memory-api :4000]
 ```
 
 ## Project Structure
@@ -77,7 +80,7 @@ pi-llama/
 │   ├── CONFIGURATION.md       # Config file reference
 │   └── LLAMA-API.md           # API documentation
 ├── client/                    # React chat application
-└── memory-api/                # Memory API service
+└── memory-api/                # Memory API service (port 4000)
 ```
 
 ## Configuration
@@ -94,11 +97,30 @@ Edit `pi-llama.conf` to customize:
 
 See [docs/CONFIGURATION.md](docs/CONFIGURATION.md) for all options.
 
+## Memory API
+
+The memory API service provides persistent memory storage for conversations:
+
+| Endpoint | Description |
+|----------|-------------|
+| `GET /memories` | List all memories |
+| `POST /memories` | Save a new memory |
+| `GET /memories/search?q=...` | Semantic search |
+| `DELETE /memories/{id}` | Delete a memory |
+
+Runs on port 4000 by default (configurable via `MEMORY_API_PORT` env var).
+
 ## Useful Commands
 
 ```bash
 # Start server manually
 ./scripts/server.sh
+
+# Start all services (server + memory API)
+./scripts/start-all.sh
+
+# Development mode (server + memory API + React hot reload)
+./scripts/server_dev.sh
 
 # CLI chat
 ./scripts/chat.sh
@@ -119,6 +141,8 @@ journalctl -u llama -f
 |------|-------------|
 | `scripts/setup.sh` | Automated setup (apt/pacman) |
 | `scripts/server.sh` | Start llama-server |
+| `scripts/start-all.sh` | Start server + memory API |
+| `scripts/server_dev.sh` | Dev mode with hot reload |
 | `scripts/chat.sh` | Interactive CLI chat |
 | `scripts/build.sh` | Build React app |
 | `configs/pi-llama.conf.*` | Configuration presets |

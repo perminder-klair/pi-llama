@@ -3,6 +3,7 @@ import { useState, useRef, useEffect } from 'react'
 import { ChatHeader, MessageBubble, ChatInput } from '@/components/chat'
 import { parseThinkingTags } from '@/lib/chat-utils'
 import type { BaseMessage } from '@/lib/chat-types'
+import { env } from '@/env'
 
 export const Route = createFileRoute('/qwen3')({
   component: Qwen3Chat,
@@ -43,7 +44,7 @@ function Qwen3Chat() {
         content: m.text,
       }))
 
-      const res = await fetch('/v1/chat/completions', {
+      const res = await fetch(`${env.VITE_API_URL}/v1/chat/completions`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

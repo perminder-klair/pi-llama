@@ -14,22 +14,6 @@ const config = defineConfig({
       '@': fileURLToPath(new URL('./src', import.meta.url)),
     },
   },
-  server: {
-    proxy: {
-      '/v1': {
-        target: 'http://localhost:5000',
-        changeOrigin: true,
-      },
-      '/memories': {
-        target: 'http://localhost:3000',
-        changeOrigin: true,
-      },
-      '/cgi-bin': {
-        target: 'http://localhost',
-        changeOrigin: true,
-      },
-    },
-  },
   plugins: [
     devtools(),
     nitro(),
