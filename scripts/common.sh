@@ -87,7 +87,7 @@ detect_system() {
 # Check internet connectivity
 check_internet() {
     info "Checking internet connectivity..."
-    if ! wget -q --spider https://huggingface.co 2>/dev/null; then
+    if ! curl -s --head --connect-timeout 10 https://huggingface.co >/dev/null 2>&1; then
         error "No internet connection to huggingface.co"
     fi
     success "Internet OK"
