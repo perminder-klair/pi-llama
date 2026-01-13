@@ -1,0 +1,15 @@
+[Unit]
+Description=Memory API for Pi-LLaMA
+After=network.target llama.service
+
+[Service]
+Type=simple
+User=%USER%
+WorkingDirectory=%HOME%/Projects/pi-llama/memory-api
+ExecStart=/usr/bin/python3 -m uvicorn main:app --host 0.0.0.0 --port 3000
+Restart=on-failure
+RestartSec=5
+Environment=PYTHONUNBUFFERED=1
+
+[Install]
+WantedBy=multi-user.target

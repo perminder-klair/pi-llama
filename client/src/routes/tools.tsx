@@ -25,13 +25,18 @@ export const Route = createFileRoute('/tools')({
   }),
 })
 
-const SYSTEM_PROMPT =
-  'You are Qwen3, a helpful AI assistant with access to tools. Use the available tools when appropriate to answer user questions. Be concise.'
+const SYSTEM_PROMPT = `You are Qwen3, a helpful AI assistant with access to tools. Use the available tools when appropriate to answer user questions. Be concise.
+
+MEMORY INSTRUCTIONS:
+- When the user shares personal preferences, facts about themselves, or information worth remembering, use the save_memory tool to store it.
+- When you need to recall something about the user (their name, preferences, past information), use the recall_memories tool first.
+- Examples of things to save: name, preferences, favorite topics, important facts they've shared.
+- Always acknowledge when you've saved a memory.`
 
 const EXAMPLE_PROMPTS = [
-  { label: 'Weather in Tokyo', prompt: 'What is the weather in Tokyo?' },
-  { label: 'Calculator', prompt: 'Calculate 847 * 23' },
-  { label: 'Current time', prompt: 'What time is it?' },
+  { label: 'Remember me', prompt: 'My name is Alex and I prefer dark themes' },
+  { label: 'Recall', prompt: 'What do you remember about me?' },
+  { label: 'Weather', prompt: 'What is the weather in Tokyo?' },
 ]
 
 function ToolsChat() {
@@ -88,8 +93,8 @@ function ToolsChat() {
             }
             setDisplayMessages((prev) => [...prev, toolCallMsg])
 
-            // Execute tool
-            const result = executeTool(funcName, funcArgs)
+            // Execute tool (async for memory operations)
+            const result = await executeTool(funcName, funcArgs)
 
             // Display result
             const toolResultMsg: ToolResultMessage = {

@@ -51,14 +51,107 @@ export const toolDefinitions: ToolDefinition[] = [
       },
     },
   },
+  {
+    type: 'function',
+    function: {
+      name: 'save_memory',
+      description:
+        'Save an important fact about the user for future reference. Use this when the user shares preferences, personal information, or anything worth remembering.',
+      parameters: {
+        type: 'object',
+        properties: {
+          content: {
+            type: 'string',
+            description:
+              'The fact or preference to remember, e.g. "User prefers dark mode" or "User\'s name is Alex"',
+          },
+          category: {
+            type: 'string',
+            enum: ['preference', 'personal', 'general'],
+            description: 'Category of the memory',
+          },
+        },
+        required: ['content'],
+      },
+    },
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'recall_memories',
+      description:
+        'Search for relevant memories about the user. Use this to recall previously saved information.',
+      parameters: {
+        type: 'object',
+        properties: {
+          query: {
+            type: 'string',
+            description:
+              'Search query to find relevant memories, e.g. "name" or "preferences"',
+          },
+        },
+        required: ['query'],
+      },
+    },
+  },
 ]
 
-// Mock tool implementations
-export function executeTool(
+// Tool implementations (some mock, some real API calls)
+export async function executeTool(
   name: string,
   args: Record<string, unknown>
-): string {
+): Promise<string> {
   switch (name) {
+    case 'save_memory': {
+      try {
+        const response = await fetch('/memories', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            content: args.content as string,
+            category: (args.category as string) || 'general',
+          }),
+        })
+        const data = await response.json()
+        return JSON.stringify({
+          saved: true,
+          id: data.id,
+          content: data.content,
+        })
+      } catch (error) {
+        return JSON.stringify({
+          saved: false,
+          error: error instanceof Error ? error.message : 'Unknown error',
+        })
+      }
+    }
+
+    case 'recall_memories': {
+      try {
+        const query = encodeURIComponent(args.query as string)
+        const response = await fetch(`/memories/search?q=${query}&limit=5`)
+        const data = await response.json()
+        if (data.results && data.results.length > 0) {
+          return JSON.stringify({
+            found: true,
+            memories: data.results.map(
+              (m: { content: string; category: string; similarity: number }) => ({
+                content: m.content,
+                category: m.category,
+                relevance: m.similarity,
+              })
+            ),
+          })
+        }
+        return JSON.stringify({ found: false, memories: [] })
+      } catch (error) {
+        return JSON.stringify({
+          found: false,
+          error: error instanceof Error ? error.message : 'Unknown error',
+        })
+      }
+    }
+
     case 'get_weather': {
       const temps: Record<string, number> = {
         Tokyo: 22,

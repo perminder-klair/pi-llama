@@ -20,6 +20,10 @@ const config = defineConfig({
         target: 'http://localhost:8080',
         changeOrigin: true,
       },
+      '/memories': {
+        target: 'http://localhost:3000',
+        changeOrigin: true,
+      },
       '/cgi-bin': {
         target: 'http://localhost',
         changeOrigin: true,
