@@ -132,14 +132,14 @@ check_internet
 
 # Check system requirements for desktop
 if [ "$ENVIRONMENT" = "desktop" ]; then
-    if [ "$RAM_GB" -lt 20 ]; then
-        echo -e "${YELLOW}Warning: Only ${RAM_GB}GB RAM detected. Qwen3-30B needs 20GB+.${NC}"
+    if [ "$RAM_GB" -lt 4 ]; then
+        echo -e "${YELLOW}Warning: Only ${RAM_GB}GB RAM detected. Qwen3-4B needs 4GB+.${NC}"
         if ! confirm "Continue anyway?"; then
             exit 1
         fi
     fi
-    if [ "$DISK_FREE" -lt 25 ]; then
-        echo -e "${YELLOW}Warning: Only ${DISK_FREE}GB free disk space. Model needs ~20GB.${NC}"
+    if [ "$DISK_FREE" -lt 5 ]; then
+        echo -e "${YELLOW}Warning: Only ${DISK_FREE}GB free disk space. Model needs ~3GB.${NC}"
         if ! confirm "Continue anyway?"; then
             exit 1
         fi
@@ -155,7 +155,7 @@ install_dependencies() {
     case $PACKAGE_MANAGER in
         apt)
             sudo apt update
-            sudo apt install -y git g++ wget build-essential cmake nodejs npm
+            sudo apt install -y git g++ wget build-essential cmake ninja-build nodejs npm
             if [ "${USE_NGINX:-false}" = "true" ]; then
                 sudo apt install -y nginx fcgiwrap
             fi
@@ -208,8 +208,8 @@ build_llama() {
     cd "$LLAMA_DIR"
     mkdir -p build && cd build
 
-    # Use ninja on Arch, make on others
-    if command -v ninja &>/dev/null && [ "$PACKAGE_MANAGER" = "pacman" ]; then
+    # Use ninja if available for faster builds
+    if command -v ninja &>/dev/null; then
         cmake .. -G Ninja
         ninja
     else
@@ -263,7 +263,24 @@ build_client() {
     success "React app built"
 }
 
-# Step 5: Install systemd service (Pi only)
+# Step 5: Setup memory-api Python environment
+setup_memory_api() {
+    info "Setting up memory-api..."
+    cd "$PROJECT_ROOT/memory-api"
+
+    if [ -d "venv" ]; then
+        success "Memory API venv already exists"
+        return
+    fi
+
+    python3 -m venv venv
+    ./venv/bin/pip install --upgrade pip
+    ./venv/bin/pip install -r requirements.txt
+
+    success "Memory API ready"
+}
+
+# Step 6: Install systemd service (Pi only)
 install_systemd_service() {
     if [ "${USE_SYSTEMD:-false}" != "true" ]; then
         return
@@ -288,7 +305,7 @@ install_systemd_service() {
     success "Systemd service installed and started"
 }
 
-# Step 6: Configure nginx (Pi only)
+# Step 7: Configure nginx (Pi only)
 configure_nginx() {
     if [ "${USE_NGINX:-false}" != "true" ]; then
         return
@@ -361,6 +378,9 @@ main() {
     echo
 
     build_client
+    echo
+
+    setup_memory_api
     echo
 
     if [ "$ENVIRONMENT" = "pi" ]; then
