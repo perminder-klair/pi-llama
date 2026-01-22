@@ -17,7 +17,7 @@ interface Message {
 }
 
 const SYSTEM_PROMPT =
-  'You are a witty, clever assistant with a dry sense of humor. Be helpful but sneak in subtle jokes or wordplay. Keep replies brief (1-2 sentences).'
+  'You are a witty, clever assistant with a dry sense of humor. Be helpful but sneak in subtle jokes or wordplay. Keep replies brief (1-2 sentences). /no_think'
 
 function Chat() {
   const [messages, setMessages] = useState<Message[]>([])
@@ -53,7 +53,7 @@ function Chat() {
             ...history,
             { role: 'user', content: msg },
           ],
-          max_tokens: 64,
+          max_tokens: 1024,
         }),
       })
 
