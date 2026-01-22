@@ -2,17 +2,20 @@
 
 import sqlite3
 import json
+import os
 import numpy as np
 from pathlib import Path
 from datetime import datetime
 from typing import Optional
 import httpx
 
-# Database path
-DB_PATH = Path(__file__).parent / "memories.db"
+# Database path - use /app/data in Docker, local otherwise
+DATA_DIR = Path(os.getenv("DATA_DIR", Path(__file__).parent))
+DB_PATH = DATA_DIR / "memories.db"
 
 # llama-server embedding endpoint
-EMBEDDING_URL = "http://localhost:5000/embedding"
+LLAMA_SERVER_URL = os.getenv("LLAMA_SERVER_URL", "http://localhost:5000")
+EMBEDDING_URL = f"{LLAMA_SERVER_URL}/embedding"
 
 
 def get_connection() -> sqlite3.Connection:
