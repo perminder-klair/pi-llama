@@ -1,9 +1,12 @@
 import { createFileRoute } from '@tanstack/react-router'
 import { useState, useRef, useEffect } from 'react'
 import { ChatHeader, MessageBubble, ChatInput } from '@/components/chat'
-import { parseThinkingTags } from '@/lib/chat-utils'
+import {
+  createThinkingStreamState,
+  processThinkingToken,
+} from '@/lib/chat-utils'
+import { streamChatCompletion } from '@/lib/streaming'
 import type { BaseMessage } from '@/lib/chat-types'
-import { env } from '@/env'
 
 export const Route = createFileRoute('/qwen3')({
   component: Qwen3Chat,
@@ -37,41 +40,63 @@ function Qwen3Chat() {
     setInput('')
     setIsLoading(true)
 
-    try {
-      // Send last 6 messages as context
-      const history = newMessages.slice(-6).map((m) => ({
-        role: m.role === 'user' ? 'user' : 'assistant',
-        content: m.text,
-      }))
+    // Add empty bot message for streaming
+    const botIndex = newMessages.length
+    setMessages((prev) => [...prev, { role: 'bot', text: '', thinking: '' }])
 
-      const res = await fetch(`${env.VITE_API_URL}/v1/chat/completions`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          messages: [{ role: 'system', content: SYSTEM_PROMPT }, ...history],
-          max_tokens: 512,
-          temperature: 0.7,
-        }),
-      })
+    // Send last 6 messages as context
+    const history = newMessages.slice(-6).map((m) => ({
+      role: m.role === 'user' ? ('user' as const) : ('assistant' as const),
+      content: m.text,
+    }))
 
-      const data = await res.json()
-      const rawReply = data.choices[0].message.content
+    // Track thinking stream state
+    let thinkState = createThinkingStreamState()
 
-      // Parse thinking tags
-      const { text, thinking } = parseThinkingTags(rawReply)
-
-      setMessages((prev) => [...prev, { role: 'bot', text, thinking }])
-    } catch (e) {
-      setMessages((prev) => [
-        ...prev,
-        {
-          role: 'bot',
-          text: `Error: ${e instanceof Error ? e.message : 'Unknown error'}`,
+    await streamChatCompletion(
+      {
+        messages: [{ role: 'system', content: SYSTEM_PROMPT }, ...history],
+        maxTokens: 512,
+        temperature: 0.7,
+      },
+      {
+        onToken: (token) => {
+          thinkState = processThinkingToken(thinkState, token)
+          setMessages((prev) => {
+            const updated = [...prev]
+            updated[botIndex] = {
+              ...updated[botIndex],
+              text: thinkState.text,
+              thinking: thinkState.thinking || undefined,
+            }
+            return updated
+          })
         },
-      ])
-    } finally {
-      setIsLoading(false)
-    }
+        onError: (error) => {
+          setMessages((prev) => {
+            const updated = [...prev]
+            updated[botIndex] = {
+              ...updated[botIndex],
+              text: `Error: ${error.message}`,
+            }
+            return updated
+          })
+        },
+        onComplete: () => {
+          // Trim final content
+          setMessages((prev) => {
+            const updated = [...prev]
+            updated[botIndex] = {
+              ...updated[botIndex],
+              text: thinkState.text.trim(),
+              thinking: thinkState.thinking.trim() || undefined,
+            }
+            return updated
+          })
+          setIsLoading(false)
+        },
+      }
+    )
   }
 
   // Display last 20 messages
@@ -83,16 +108,12 @@ function Qwen3Chat() {
 
       <div className="flex-1 flex flex-col justify-end p-5 overflow-y-auto">
         {visibleMessages.map((m, i) => (
-          <MessageBubble key={i} message={m} />
+          <MessageBubble
+            key={i}
+            message={m}
+            isLoading={isLoading && i === visibleMessages.length - 1}
+          />
         ))}
-        {isLoading && (
-          <div
-            className="text-gray-500 text-lg py-4 px-5 bg-chat-secondary/50
-                          rounded-xl my-2 self-start"
-          >
-            Thinking...
-          </div>
-        )}
       </div>
 
       <ChatInput

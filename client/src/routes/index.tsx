@@ -2,7 +2,7 @@ import { createFileRoute } from '@tanstack/react-router'
 import { useState, useRef, useEffect } from 'react'
 import { Power } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { env } from '@/env'
+import { streamChatCompletion } from '@/lib/streaming'
 
 export const Route = createFileRoute('/')({
   component: Chat,
@@ -38,39 +38,49 @@ function Chat() {
     setInput('')
     setIsLoading(true)
 
-    try {
-      const history = newMessages.slice(-4).map((m) => ({
-        role: m.role === 'user' ? 'user' : 'assistant',
-        content: m.text,
-      }))
+    // Add empty bot message for streaming
+    const botIndex = newMessages.length
+    setMessages((prev) => [...prev, { role: 'bot', text: '' }])
 
-      const res = await fetch(`${env.VITE_API_URL}/v1/chat/completions`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          messages: [
-            { role: 'system', content: SYSTEM_PROMPT },
-            ...history,
-            { role: 'user', content: msg },
-          ],
-          max_tokens: 1024,
-        }),
-      })
+    const history = newMessages.slice(-4).map((m) => ({
+      role: m.role === 'user' ? ('user' as const) : ('assistant' as const),
+      content: m.text,
+    }))
 
-      const data = await res.json()
-      const reply = data.choices[0].message.content
-      setMessages((prev) => [...prev, { role: 'bot', text: reply }])
-    } catch (e) {
-      setMessages((prev) => [
-        ...prev,
-        {
-          role: 'bot',
-          text: `Error: ${e instanceof Error ? e.message : 'Unknown error'}`,
+    await streamChatCompletion(
+      {
+        messages: [
+          { role: 'system', content: SYSTEM_PROMPT },
+          ...history,
+        ],
+        maxTokens: 1024,
+      },
+      {
+        onToken: (token) => {
+          setMessages((prev) => {
+            const updated = [...prev]
+            updated[botIndex] = {
+              ...updated[botIndex],
+              text: updated[botIndex].text + token,
+            }
+            return updated
+          })
         },
-      ])
-    } finally {
-      setIsLoading(false)
-    }
+        onError: (error) => {
+          setMessages((prev) => {
+            const updated = [...prev]
+            updated[botIndex] = {
+              ...updated[botIndex],
+              text: `Error: ${error.message}`,
+            }
+            return updated
+          })
+        },
+        onComplete: () => {
+          setIsLoading(false)
+        },
+      }
+    )
   }
 
   const shutdown = async () => {
@@ -104,12 +114,13 @@ function Chat() {
               m.role === 'user' ? 'bg-chat-accent' : 'bg-chat-secondary'
             )}
           >
-            {m.text}
+            {m.role === 'bot' && !m.text && isLoading ? (
+              <span className="text-gray-500">Thinking...</span>
+            ) : (
+              m.text
+            )}
           </div>
         ))}
-        {isLoading && (
-          <div className="text-gray-500 text-xl p-2.5">Thinking...</div>
-        )}
       </div>
 
       <div className="flex p-5 pb-[calc(1.25rem+env(safe-area-inset-bottom))] pr-[calc(1.25rem+env(safe-area-inset-right))] bg-chat-bar">

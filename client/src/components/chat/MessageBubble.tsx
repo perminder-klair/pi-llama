@@ -6,11 +6,13 @@ import type { BaseMessage } from '@/lib/chat-types'
 
 interface MessageBubbleProps {
   message: BaseMessage
+  isLoading?: boolean
 }
 
-export function MessageBubble({ message }: MessageBubbleProps) {
+export function MessageBubble({ message, isLoading }: MessageBubbleProps) {
   const [thinkingExpanded, setThinkingExpanded] = useState(false)
   const isUser = message.role === 'user'
+  const showThinkingPlaceholder = !isUser && !message.text && isLoading
 
   return (
     <div
@@ -19,7 +21,9 @@ export function MessageBubble({ message }: MessageBubbleProps) {
         isUser ? 'bg-chat-accent self-end ml-auto' : 'bg-chat-secondary self-start'
       )}
     >
-      {isUser ? (
+      {showThinkingPlaceholder ? (
+        <span className="text-gray-500">Thinking...</span>
+      ) : isUser ? (
         <div>{message.text}</div>
       ) : (
         <ReactMarkdown className="prose prose-invert">

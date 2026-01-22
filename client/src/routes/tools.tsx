@@ -7,7 +7,11 @@ import {
   ToolResultBubble,
   ChatInput,
 } from '@/components/chat'
-import { parseThinkingTags } from '@/lib/chat-utils'
+import {
+  createThinkingStreamState,
+  processThinkingToken,
+} from '@/lib/chat-utils'
+import { streamChatCompletion } from '@/lib/streaming'
 import { toolDefinitions, executeTool } from '@/lib/tools'
 import type {
   DisplayMessage,
@@ -115,12 +119,8 @@ function ToolsChat() {
           continue
         }
 
-        // No tool calls - this is the final response
-        const rawReply = message.content || ''
-        const { text, thinking } = parseThinkingTags(rawReply)
-
-        const botMessage: BaseMessage = { role: 'bot', text, thinking }
-        setDisplayMessages((prev) => [...prev, botMessage])
+        // No tool calls - stream the final response
+        await streamFinalResponse(apiMessages)
         return
       } catch (e) {
         const errorMessage: BaseMessage = {
@@ -138,6 +138,75 @@ function ToolsChat() {
       text: 'Error: Too many tool iterations',
     }
     setDisplayMessages((prev) => [...prev, errorMessage])
+  }
+
+  const streamFinalResponse = async (
+    apiMessages: ChatCompletionMessage[]
+  ): Promise<void> => {
+    // Add empty bot message for streaming
+    let botIndex = -1
+    setDisplayMessages((prev) => {
+      botIndex = prev.length
+      return [...prev, { role: 'bot', text: '', thinking: '' } as BaseMessage]
+    })
+
+    // Wait for state to update
+    await new Promise((resolve) => setTimeout(resolve, 0))
+
+    let thinkState = createThinkingStreamState()
+
+    // Convert to streaming format (exclude tool_calls from messages)
+    const streamMessages = apiMessages.map((m) => ({
+      role: m.role,
+      content: m.content || '',
+      ...(m.tool_call_id ? { tool_call_id: m.tool_call_id } : {}),
+    }))
+
+    await streamChatCompletion(
+      {
+        messages: streamMessages,
+        maxTokens: 512,
+        temperature: 0.7,
+      },
+      {
+        onToken: (token) => {
+          thinkState = processThinkingToken(thinkState, token)
+          setDisplayMessages((prev) => {
+            if (botIndex < 0 || botIndex >= prev.length) return prev
+            const updated = [...prev]
+            updated[botIndex] = {
+              role: 'bot',
+              text: thinkState.text,
+              thinking: thinkState.thinking || undefined,
+            } as BaseMessage
+            return updated
+          })
+        },
+        onError: (error) => {
+          setDisplayMessages((prev) => {
+            if (botIndex < 0 || botIndex >= prev.length) return prev
+            const updated = [...prev]
+            updated[botIndex] = {
+              role: 'bot',
+              text: `Error: ${error.message}`,
+            } as BaseMessage
+            return updated
+          })
+        },
+        onComplete: () => {
+          setDisplayMessages((prev) => {
+            if (botIndex < 0 || botIndex >= prev.length) return prev
+            const updated = [...prev]
+            updated[botIndex] = {
+              role: 'bot',
+              text: thinkState.text.trim(),
+              thinking: thinkState.thinking.trim() || undefined,
+            } as BaseMessage
+            return updated
+          })
+        },
+      }
+    )
   }
 
   const sendMessage = async () => {
@@ -196,7 +265,14 @@ function ToolsChat() {
         return <ToolResultBubble key={index} message={message} />
       }
     }
-    return <MessageBubble key={index} message={message as BaseMessage} />
+    const isLastMessage = index === visibleMessages.length - 1
+    return (
+      <MessageBubble
+        key={index}
+        message={message as BaseMessage}
+        isLoading={isLoading && isLastMessage}
+      />
+    )
   }
 
   return (
@@ -205,14 +281,6 @@ function ToolsChat() {
 
       <div className="flex-1 flex flex-col justify-end p-5 overflow-y-auto">
         {visibleMessages.map(renderMessage)}
-        {isLoading && (
-          <div
-            className="text-gray-500 text-lg py-4 px-5 bg-chat-secondary/50
-                          rounded-xl my-2 self-start"
-          >
-            Thinking...
-          </div>
-        )}
       </div>
 
       {/* Example prompts */}
