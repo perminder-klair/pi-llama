@@ -1,11 +1,21 @@
 services:
+  gateway:
+    image: nginx:alpine
+    ports:
+      - "5000:80"
+    volumes:
+      - ./configs/nginx-gateway.conf:/etc/nginx/nginx.conf:ro
+      - ./client/.output/public:/static:ro
+    depends_on:
+      - llama-server
+      - memory-api
+      - whisper
+      - tts
+
   llama-server:
     image: ghcr.io/ggml-org/llama.cpp:server
-    ports:
-      - "5000:5000"
     volumes:
-      - ~/llama.cpp/models:/models:ro
-      - ./client/.output/public:/static:ro
+      - ./models:/models:ro
     command: >
       --model /models/${MODEL_NAME:-Qwen3-4B-Q4_K_M.gguf}
       --host 0.0.0.0
@@ -13,7 +23,6 @@ services:
       -c ${CONTEXT_SIZE:-8192}
       --embedding
       --jinja
-      --path /static
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:5000/health"]
       interval: 30s
@@ -22,8 +31,6 @@ services:
 
   memory-api:
     build: ./memory-api
-    ports:
-      - "4000:4000"
     volumes:
       - memory-data:/app/data
     environment:
@@ -36,8 +43,6 @@ services:
   # Speech-to-Text (Whisper) - CPU optimized
   whisper:
     image: onerahmet/openai-whisper-asr-webservice:latest
-    ports:
-      - "9000:9000"
     volumes:
       - whisper-cache:/root/.cache
     environment:
@@ -47,8 +52,6 @@ services:
   # Text-to-Speech (Piper) - CPU optimized
   tts:
     image: ghcr.io/matatonic/openedai-speech-min
-    ports:
-      - "8000:8000"
     volumes:
       - tts-voices:/app/voices
       - tts-config:/app/config

@@ -4,100 +4,102 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Pi-LLaMA is a unified setup for running a self-hosted LLaMA chat server using llama.cpp. It works on both Raspberry Pi and desktop systems, with configuration-based environment detection.
+Pi-LLaMA is a self-hosted AI chat application for home servers with voice capabilities and persistent memory. It combines a React TypeScript frontend with a Python FastAPI backend, using llama.cpp for LLM inference with semantic memory search.
 
 ## Architecture
 
-**Desktop mode:**
 ```
-[Browser] --> [llama-server :5000] --> [React App + API]
-```
-
-**Pi mode:**
-```
-[Browser] --> [nginx :80] --> [React App]
-                  |
-                  +--> [llama-server :5000] (OpenAI-compatible API)
-```
-
-## Project Structure
-
-```
-pi-llama/
-├── pi-llama.conf              # User configuration (created from preset)
-├── scripts/
-│   ├── common.sh              # Shared functions
-│   ├── setup.sh               # Unified setup (apt/pacman)
-│   ├── server.sh              # Start llama-server
-│   ├── chat.sh                # CLI chat interface
-│   └── build.sh               # Build React client
-├── configs/
-│   ├── pi-llama.conf.pi       # Pi preset
-│   ├── pi-llama.conf.desktop  # Desktop preset
-│   ├── llama.service.template # Systemd template
-│   └── nginx-chat.template    # Nginx template
-├── docs/
-│   ├── CONFIGURATION.md       # Config reference
-│   └── LLAMA-API.md           # API documentation
-├── client/                    # React chat application
-└── memory-api/                # Memory API service
+┌─────────────────────────────────────────────────────────┐
+│                    NGINX GATEWAY (5000)                 │
+│  Routes traffic to all services, serves static React    │
+└──────┬──────────────────────────────────────────────────┘
+       │
+       ├─→ /v1/*        → llama-server:5000 (LLM API)
+       ├─→ /memory/*    → memory-api:4000 (Memories + embeddings)
+       ├─→ /whisper/*   → whisper:9000 (Speech-to-text)
+       ├─→ /tts/*       → tts:8000 (Text-to-speech)
+       └─→ /*           → React build (static SPA)
 ```
 
-## Key Files
+**Services:**
+- **client/** - React 19 + TanStack Router frontend (Vite, Tailwind CSS, Shadcn/ui)
+- **memory-api/** - FastAPI service for semantic memory storage with SQLite + vector embeddings
+- **llama-server** - llama.cpp with Qwen3-4B model, OpenAI-compatible API
+- **whisper** - Speech-to-text (faster_whisper)
+- **tts** - Text-to-speech (Piper)
 
-- `pi-llama.conf` - Main configuration file (environment, model, ports, etc.)
-- `scripts/setup.sh` - Unified setup script (handles both apt and pacman)
-- `scripts/server.sh` - Start llama-server with config-based parameters
-- `client/` - React chat application source
+## Development Commands
 
-## Configuration
-
-The project uses `pi-llama.conf` for all settings:
-
+### Frontend (client/)
 ```bash
-# Create config from preset
-cp configs/pi-llama.conf.desktop pi-llama.conf  # Desktop
-cp configs/pi-llama.conf.pi pi-llama.conf       # Pi
+npm install              # Install dependencies
+npm run dev              # Dev server (port 3000)
+npm run build            # Production build
+npm run lint             # ESLint check
+npm run format           # Prettier format
+npm run test             # Run Vitest
 ```
 
-Key settings:
-- `ENVIRONMENT`: "pi" or "desktop"
-- `MODEL_NAME`: GGUF model filename
-- `SERVER_PORT`: Default 5000
-- `GPU_LAYERS`: GPU offload layers (0 for CPU-only)
-- `ENABLE_TOOL_CALLING`: Enable --jinja for function calling
-
-## External Dependencies
-
-llama.cpp at `~/llama.cpp/`:
-- Binary: `~/llama.cpp/build/bin/llama-server`
-- CLI: `~/llama.cpp/build/bin/llama-cli`
-- Models: `~/llama.cpp/models/`
-
-## Common Commands
-
+### Memory API (memory-api/)
 ```bash
-# Setup (installs deps, builds llama.cpp, downloads model)
-./scripts/setup.sh
-
-# Start server
-./scripts/server.sh
-
-# CLI chat
-./scripts/chat.sh
-
-# Rebuild React app
-./scripts/build.sh
-
-# (Pi) Service management
-sudo systemctl status llama
-sudo systemctl restart llama
-journalctl -u llama -f
+pip install -r requirements.txt
+python main.py           # Runs on port 4000
 ```
 
-## Development Notes
+### Docker (full stack)
+```bash
+make setup               # First-time: download model + build client
+make up                  # Start all services
+make down                # Stop all services
+make logs                # View logs
+make clean               # Remove model and client build
+```
 
-- Port is unified to 5000 for all environments
-- Scripts source `scripts/common.sh` for shared functions
-- Config uses shell variable syntax (sourceable with `source pi-llama.conf`)
-- Templates use `%PLACEHOLDER%` syntax for sed substitution
+## Key Implementation Details
+
+### Streaming Chat
+- Uses Server-Sent Events (SSE) for real-time token streaming
+- Parser in `client/src/lib/streaming.ts` handles OpenAI-compatible `data: {...}` format
+- Nginx configured with `proxy_buffering off` for streaming support
+
+### Memory System
+- Saves user preferences/facts across sessions using semantic search
+- Flow: text → llama-server:/embedding → vector → SQLite storage
+- Search uses NumPy cosine similarity against stored embeddings
+- Endpoints: `POST /memories`, `GET /memories/search?q=...`
+
+### Tool Calling
+- LLM invokes functions with structured arguments (OpenAI format)
+- Components: `ToolCallBubble.tsx`, `ToolResultBubble.tsx`
+- Requires `--jinja` flag on llama-server (enabled in docker-compose)
+
+### Environment Variables
+**Development:**
+```
+VITE_API_URL=http://localhost:5000
+VITE_MEMORY_API_URL=http://localhost:4000
+```
+
+**Production:**
+```
+VITE_API_URL=                    # Relative paths via nginx
+VITE_MEMORY_API_URL=/memory
+```
+
+## Tech Stack Notes
+
+- **React 19** with TanStack Start for SSR prerendering
+- **TanStack Router** with file-based routing in `src/routes/`
+- **T3Env** for environment variable validation (`client/src/env.ts`)
+- **Shadcn/ui** components - install with: `pnpm dlx shadcn@latest add <component>`
+- Path alias: `@/` → `src/`
+
+## Port Reference
+
+| Service | Dev Port | Prod (via nginx) |
+|---------|----------|------------------|
+| Frontend | 3000 | 5000 (/) |
+| LLM API | 5000 | 5000 (/v1/*) |
+| Memory API | 4000 | 5000 (/memory/*) |
+| Whisper | 9000 | 5000 (/whisper/*) |
+| TTS | 8000 | 5000 (/tts/*) |
