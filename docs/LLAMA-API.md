@@ -379,8 +379,146 @@ llama-server -m model.gguf --chat-template-file no-think-template.jinja
 
 ---
 
+## Voice Services
+
+These services run alongside llama-server for voice integration.
+
+### Speech-to-Text (Whisper) - Port 9000
+
+Uses [faster-whisper](https://github.com/ahmetoner/whisper-asr-webservice) for audio transcription.
+
+#### POST /asr
+
+Transcribe audio file to text.
+
+```bash
+# Basic transcription
+curl -F "audio_file=@recording.wav" http://localhost:9000/asr
+
+# With language hint
+curl -F "audio_file=@recording.wav" \
+     -F "language=en" \
+     http://localhost:9000/asr
+
+# Get timestamped output
+curl -F "audio_file=@recording.wav" \
+     -F "output=json" \
+     http://localhost:9000/asr
+```
+
+**Supported formats:** WAV, MP3, FLAC, OGG, M4A
+
+**Response (text):**
+```
+Hello, how are you today?
+```
+
+**Response (JSON with output=json):**
+```json
+{
+  "text": "Hello, how are you today?",
+  "segments": [
+    {"start": 0.0, "end": 2.5, "text": "Hello, how are you today?"}
+  ]
+}
+```
+
+**Query parameters:**
+- `language` - ISO language code (e.g., `en`, `ja`, `es`)
+- `output` - Response format: `txt`, `json`, `vtt`, `srt`
+- `task` - `transcribe` (default) or `translate` (to English)
+
+**Swagger UI:** http://localhost:9000/docs
+
+---
+
+### Text-to-Speech (Piper) - Port 8000
+
+Uses [openedai-speech](https://github.com/matatonic/openedai-speech) with Piper backend.
+
+#### POST /v1/audio/speech
+
+Generate speech audio from text (OpenAI-compatible).
+
+```bash
+# Generate MP3
+curl -X POST http://localhost:8000/v1/audio/speech \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "tts-1",
+    "input": "Hello, how are you today?",
+    "voice": "alloy"
+  }' --output speech.mp3
+
+# Generate WAV (better for Pico W)
+curl -X POST http://localhost:8000/v1/audio/speech \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "tts-1",
+    "input": "Hello world",
+    "voice": "alloy",
+    "response_format": "wav"
+  }' --output speech.wav
+```
+
+**Request body:**
+```json
+{
+  "model": "tts-1",
+  "input": "Text to speak",
+  "voice": "alloy",
+  "response_format": "mp3",
+  "speed": 1.0
+}
+```
+
+**Parameters:**
+- `model` - `tts-1` (Piper, fast CPU) or `tts-1-hd` (XTTS, requires GPU)
+- `input` - Text to convert to speech (max 4096 chars)
+- `voice` - Voice name: `alloy`, `echo`, `fable`, `onyx`, `nova`, `shimmer`
+- `response_format` - `mp3`, `opus`, `aac`, `flac`, `wav`, `pcm`
+- `speed` - Speed multiplier 0.25 to 4.0 (default 1.0)
+
+---
+
+### Voice Pipeline Example
+
+Complete flow from audio input to audio response:
+
+```bash
+# 1. Transcribe audio to text
+TEXT=$(curl -s -F "audio_file=@question.wav" http://localhost:9000/asr)
+
+# 2. Get LLM response
+RESPONSE=$(curl -s http://localhost:5000/v1/chat/completions \
+  -H "Content-Type: application/json" \
+  -d "{\"messages\":[{\"role\":\"user\",\"content\":\"$TEXT\"}]}" \
+  | jq -r '.choices[0].message.content')
+
+# 3. Convert response to speech
+curl -X POST http://localhost:8000/v1/audio/speech \
+  -H "Content-Type: application/json" \
+  -d "{\"model\":\"tts-1\",\"input\":\"$RESPONSE\",\"voice\":\"alloy\"}" \
+  --output response.mp3
+```
+
+---
+
+## Service Ports Summary
+
+| Service | Port | Description |
+|---------|------|-------------|
+| llama-server | 5000 | LLM inference (chat, embeddings) |
+| memory-api | 4000 | Conversation memory |
+| whisper | 9000 | Speech-to-Text (STT) |
+| tts | 8000 | Text-to-Speech (TTS) |
+
+---
+
 ## References
 
 - [llama.cpp server README](https://github.com/ggml-org/llama.cpp/blob/master/tools/server/README.md)
 - [Qwen3 llama.cpp guide](https://qwen.readthedocs.io/en/latest/run_locally/llama.cpp.html)
 - [Qwen3 announcement](https://qwenlm.github.io/blog/qwen3/)
+- [whisper-asr-webservice](https://github.com/ahmetoner/whisper-asr-webservice)
+- [openedai-speech](https://github.com/matatonic/openedai-speech)

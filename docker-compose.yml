@@ -33,5 +33,28 @@ services:
       llama-server:
         condition: service_healthy
 
+  # Speech-to-Text (Whisper) - CPU optimized
+  whisper:
+    image: onerahmet/openai-whisper-asr-webservice:latest
+    ports:
+      - "9000:9000"
+    volumes:
+      - whisper-cache:/root/.cache
+    environment:
+      - ASR_MODEL=small
+      - ASR_ENGINE=faster_whisper
+
+  # Text-to-Speech (Piper) - CPU optimized
+  tts:
+    image: ghcr.io/matatonic/openedai-speech-min
+    ports:
+      - "8000:8000"
+    volumes:
+      - tts-voices:/app/voices
+      - tts-config:/app/config
+
 volumes:
   memory-data:
+  whisper-cache:
+  tts-voices:
+  tts-config:
