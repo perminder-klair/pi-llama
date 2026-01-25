@@ -3,13 +3,14 @@
 include .env
 export
 
-.PHONY: setup model client up down logs clean help test-install test test-health
+.PHONY: setup model client up down logs clean help test-install test test-health restart
 
 help:
 	@echo "Pi-LLaMA Commands:"
 	@echo "  make setup        - First-time setup (download model + build client)"
 	@echo "  make up           - Start all services"
 	@echo "  make down         - Stop all services"
+	@echo "  make restart      - Restart all services"
 	@echo "  make logs         - View logs"
 	@echo "  make clean        - Remove model and client build"
 	@echo ""
@@ -39,6 +40,9 @@ up:
 
 down:
 	docker compose down
+
+restart:
+	docker compose restart
 
 logs:
 	docker compose logs -f

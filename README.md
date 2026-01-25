@@ -55,6 +55,7 @@ open http://localhost:3080
 | `make setup` | First-time setup (download model + build client) |
 | `make up` | Start all services |
 | `make down` | Stop all services |
+| `make restart` | Restart all services |
 | `make logs` | View logs |
 | `make clean` | Remove model and client build |
 | `make test-install` | Install test dependencies |
