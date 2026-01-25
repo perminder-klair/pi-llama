@@ -21,14 +21,14 @@ make setup
 make up
 
 # Access the chat interface
-open http://localhost:5000
+open http://localhost:3080
 ```
 
 ## Architecture
 
 ```
 ┌─────────────────────────────────────────────────────────┐
-│                    NGINX GATEWAY (5000)                 │
+│                    NGINX GATEWAY (3080)                 │
 └──────┬──────────────────────────────────────────────────┘
        │
        ├─→ /v1/*        → llama-server (LLM API)
@@ -42,7 +42,7 @@ open http://localhost:5000
 
 | Service | Description | Port |
 |---------|-------------|------|
-| **Gateway** | Nginx reverse proxy | 5000 |
+| **Gateway** | Nginx reverse proxy | 3080 |
 | **LLM Server** | llama.cpp with Qwen3-4B | internal |
 | **Memory API** | FastAPI + SQLite + embeddings | internal |
 | **Whisper** | faster_whisper ASR | internal |

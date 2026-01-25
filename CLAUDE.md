@@ -10,7 +10,7 @@ Pi-LLaMA is a self-hosted AI chat application for home servers with voice capabi
 
 ```
 ┌─────────────────────────────────────────────────────────┐
-│                    NGINX GATEWAY (5000)                 │
+│                    NGINX GATEWAY (3080)                 │
 │  Routes traffic to all services, serves static React    │
 └──────┬──────────────────────────────────────────────────┘
        │
@@ -76,7 +76,7 @@ make clean               # Remove model and client build
 ### Environment Variables
 **Development:**
 ```
-VITE_API_URL=http://localhost:5000
+VITE_API_URL=http://localhost:3080
 VITE_MEMORY_API_URL=http://localhost:4000
 ```
 
@@ -98,8 +98,8 @@ VITE_MEMORY_API_URL=/memory
 
 | Service | Dev Port | Prod (via nginx) |
 |---------|----------|------------------|
-| Frontend | 3000 | 5000 (/) |
-| LLM API | 5000 | 5000 (/v1/*) |
-| Memory API | 4000 | 5000 (/memory/*) |
-| Whisper | 9000 | 5000 (/whisper/*) |
-| TTS | 8000 | 5000 (/tts/*) |
+| Frontend | 3000 | 3080 (/) |
+| LLM API | 5000 | 3080 (/v1/*) |
+| Memory API | 4000 | 3080 (/memory/*) |
+| Whisper | 9000 | 3080 (/whisper/*) |
+| TTS | 8000 | 3080 (/tts/*) |

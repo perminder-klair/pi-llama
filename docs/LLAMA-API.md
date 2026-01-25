@@ -1,6 +1,6 @@
 # llama-server API Reference
 
-API endpoints exposed by `llama-server` on `http://localhost:5000`.
+API endpoints exposed by `llama-server` on `http://localhost:3080`.
 
 ## OpenAI-Compatible Endpoints
 
@@ -9,7 +9,7 @@ API endpoints exposed by `llama-server` on `http://localhost:5000`.
 Chat completion (most common endpoint).
 
 ```bash
-curl http://localhost:5000/v1/chat/completions \
+curl http://localhost:3080/v1/chat/completions \
   -H "Content-Type: application/json" \
   -d '{
     "messages": [
@@ -38,7 +38,7 @@ curl http://localhost:5000/v1/chat/completions \
 Text completion (non-chat).
 
 ```bash
-curl http://localhost:5000/v1/completions \
+curl http://localhost:3080/v1/completions \
   -H "Content-Type: application/json" \
   -d '{
     "prompt": "The quick brown fox",
@@ -51,7 +51,7 @@ curl http://localhost:5000/v1/completions \
 Generate embeddings for text.
 
 ```bash
-curl http://localhost:5000/v1/embeddings \
+curl http://localhost:3080/v1/embeddings \
   -H "Content-Type: application/json" \
   -d '{
     "input": "Hello world"
@@ -63,7 +63,7 @@ curl http://localhost:5000/v1/embeddings \
 List available models.
 
 ```bash
-curl http://localhost:5000/v1/models
+curl http://localhost:3080/v1/models
 ```
 
 ---
@@ -75,7 +75,7 @@ curl http://localhost:5000/v1/models
 Health check.
 
 ```bash
-curl http://localhost:5000/health
+curl http://localhost:3080/health
 ```
 
 **Response:**
@@ -88,7 +88,7 @@ curl http://localhost:5000/health
 Native completion with more options than OpenAI endpoint.
 
 ```bash
-curl http://localhost:5000/completion \
+curl http://localhost:3080/completion \
   -H "Content-Type: application/json" \
   -d '{
     "prompt": "Hello",
@@ -106,7 +106,7 @@ curl http://localhost:5000/completion \
 Convert text to tokens.
 
 ```bash
-curl http://localhost:5000/tokenize \
+curl http://localhost:3080/tokenize \
   -H "Content-Type: application/json" \
   -d '{"content": "Hello world"}'
 ```
@@ -116,7 +116,7 @@ curl http://localhost:5000/tokenize \
 Convert tokens back to text.
 
 ```bash
-curl http://localhost:5000/detokenize \
+curl http://localhost:3080/detokenize \
   -H "Content-Type: application/json" \
   -d '{"tokens": [9906, 1917]}'
 ```
@@ -126,7 +126,7 @@ curl http://localhost:5000/detokenize \
 Native embeddings endpoint.
 
 ```bash
-curl http://localhost:5000/embedding \
+curl http://localhost:3080/embedding \
   -H "Content-Type: application/json" \
   -d '{"content": "Hello world"}'
 ```
@@ -136,7 +136,7 @@ curl http://localhost:5000/embedding \
 Get server configuration.
 
 ```bash
-curl http://localhost:5000/props
+curl http://localhost:3080/props
 ```
 
 ### GET /slots
@@ -144,7 +144,7 @@ curl http://localhost:5000/props
 View current processing slots.
 
 ```bash
-curl http://localhost:5000/slots
+curl http://localhost:3080/slots
 ```
 
 ### GET /metrics
@@ -152,7 +152,7 @@ curl http://localhost:5000/slots
 Prometheus-compatible metrics.
 
 ```bash
-curl http://localhost:5000/metrics
+curl http://localhost:3080/metrics
 ```
 
 ---
@@ -164,7 +164,7 @@ curl http://localhost:5000/metrics
 Anthropic Messages API format.
 
 ```bash
-curl http://localhost:5000/v1/messages \
+curl http://localhost:3080/v1/messages \
   -H "Content-Type: application/json" \
   -d '{
     "model": "qwen",
@@ -194,7 +194,7 @@ curl http://localhost:5000/v1/messages \
 Add `"stream": true` to any completion request for Server-Sent Events (SSE):
 
 ```bash
-curl http://localhost:5000/v1/chat/completions \
+curl http://localhost:3080/v1/chat/completions \
   -H "Content-Type: application/json" \
   -d '{
     "messages": [{"role": "user", "content": "Hello!"}],
@@ -213,7 +213,7 @@ Requires server started with `--jinja` flag (use `run-server-tools.sh`).
 **Step 1: Send request with tool definition**
 
 ```bash
-curl http://localhost:5000/v1/chat/completions \
+curl http://localhost:3080/v1/chat/completions \
   -H "Content-Type: application/json" \
   -d '{
     "messages": [
@@ -271,7 +271,7 @@ curl http://localhost:5000/v1/chat/completions \
 **Step 3: Send tool result back**
 
 ```bash
-curl http://localhost:5000/v1/chat/completions \
+curl http://localhost:3080/v1/chat/completions \
   -H "Content-Type: application/json" \
   -d '{
     "messages": [
@@ -328,7 +328,7 @@ Control thinking per-turn by adding `/think` or `/no_think` to your message:
 
 ```bash
 # Enable thinking for complex problems
-curl http://localhost:5000/v1/chat/completions \
+curl http://localhost:3080/v1/chat/completions \
   -H "Content-Type: application/json" \
   -d '{
     "messages": [
@@ -350,7 +350,7 @@ To find 15% of 847:
 
 ```bash
 # Disable thinking for simple queries
-curl http://localhost:5000/v1/chat/completions \
+curl http://localhost:3080/v1/chat/completions \
   -H "Content-Type: application/json" \
   -d '{
     "messages": [
@@ -383,7 +383,7 @@ llama-server -m model.gguf --chat-template-file no-think-template.jinja
 
 These services run alongside llama-server for voice integration.
 
-### Speech-to-Text (Whisper) - Port 9000
+### Speech-to-Text (Whisper) - `/whisper/*`
 
 Uses [faster-whisper](https://github.com/ahmetoner/whisper-asr-webservice) for audio transcription.
 
@@ -393,17 +393,17 @@ Transcribe audio file to text.
 
 ```bash
 # Basic transcription
-curl -F "audio_file=@recording.wav" http://localhost:9000/asr
+curl -F "audio_file=@recording.wav" http://localhost:3080/whisper/asr
 
 # With language hint
 curl -F "audio_file=@recording.wav" \
      -F "language=en" \
-     http://localhost:9000/asr
+     http://localhost:3080/whisper/asr
 
 # Get timestamped output
 curl -F "audio_file=@recording.wav" \
      -F "output=json" \
-     http://localhost:9000/asr
+     http://localhost:3080/whisper/asr
 ```
 
 **Supported formats:** WAV, MP3, FLAC, OGG, M4A
@@ -428,11 +428,11 @@ Hello, how are you today?
 - `output` - Response format: `txt`, `json`, `vtt`, `srt`
 - `task` - `transcribe` (default) or `translate` (to English)
 
-**Swagger UI:** http://localhost:9000/docs
+**Swagger UI:** http://localhost:9000/docs (direct port, development only)
 
 ---
 
-### Text-to-Speech (Piper) - Port 8000
+### Text-to-Speech (Piper) - `/tts/*`
 
 Uses [openedai-speech](https://github.com/matatonic/openedai-speech) with Piper backend.
 
@@ -442,7 +442,7 @@ Generate speech audio from text (OpenAI-compatible).
 
 ```bash
 # Generate MP3
-curl -X POST http://localhost:8000/v1/audio/speech \
+curl -X POST http://localhost:3080/tts/v1/audio/speech \
   -H "Content-Type: application/json" \
   -d '{
     "model": "tts-1",
@@ -451,7 +451,7 @@ curl -X POST http://localhost:8000/v1/audio/speech \
   }' --output speech.mp3
 
 # Generate WAV (better for Pico W)
-curl -X POST http://localhost:8000/v1/audio/speech \
+curl -X POST http://localhost:3080/tts/v1/audio/speech \
   -H "Content-Type: application/json" \
   -d '{
     "model": "tts-1",
@@ -487,16 +487,16 @@ Complete flow from audio input to audio response:
 
 ```bash
 # 1. Transcribe audio to text
-TEXT=$(curl -s -F "audio_file=@question.wav" http://localhost:9000/asr)
+TEXT=$(curl -s -F "audio_file=@question.wav" http://localhost:3080/whisper/asr)
 
 # 2. Get LLM response
-RESPONSE=$(curl -s http://localhost:5000/v1/chat/completions \
+RESPONSE=$(curl -s http://localhost:3080/v1/chat/completions \
   -H "Content-Type: application/json" \
   -d "{\"messages\":[{\"role\":\"user\",\"content\":\"$TEXT\"}]}" \
   | jq -r '.choices[0].message.content')
 
 # 3. Convert response to speech
-curl -X POST http://localhost:8000/v1/audio/speech \
+curl -X POST http://localhost:3080/tts/v1/audio/speech \
   -H "Content-Type: application/json" \
   -d "{\"model\":\"tts-1\",\"input\":\"$RESPONSE\",\"voice\":\"alloy\"}" \
   --output response.mp3
@@ -504,14 +504,19 @@ curl -X POST http://localhost:8000/v1/audio/speech \
 
 ---
 
-## Service Ports Summary
+## Service Access Summary
 
-| Service | Port | Description |
-|---------|------|-------------|
-| llama-server | 5000 | LLM inference (chat, embeddings) |
-| memory-api | 4000 | Conversation memory |
-| whisper | 9000 | Speech-to-Text (STT) |
-| tts | 8000 | Text-to-Speech (TTS) |
+All services are accessed through the nginx gateway on port 3080.
+
+| Service | Gateway Path | Direct Port (dev) | Description |
+|---------|--------------|-------------------|-------------|
+| Gateway | `:3080` | - | Nginx reverse proxy |
+| LLM API | `/v1/*` | 5000 | Chat, completions, embeddings |
+| Memory API | `/memory/*` | 4000 | Conversation memory |
+| Whisper | `/whisper/*` | 9000 | Speech-to-Text (STT) |
+| TTS | `/tts/*` | 8000 | Text-to-Speech (TTS) |
+
+> **Note:** Direct port access (9000, 8000, 4000) is available when running services individually during development. Production deployments use gateway routing through port 3080.
 
 ---
 
