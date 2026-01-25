@@ -11,6 +11,7 @@ services:
       - memory-api
       - whisper
       - tts
+      - vosk
 
   llama-server:
     image: ghcr.io/ggml-org/llama.cpp:server
@@ -55,6 +56,12 @@ services:
     volumes:
       - tts-voices:/app/voices
       - tts-config:/app/config
+
+  # Live Speech-to-Text (Vosk) - CPU optimized
+  vosk:
+    image: alphacep/kaldi-en:latest
+    ports:
+      - "2700:2700"
 
 volumes:
   memory-data:
