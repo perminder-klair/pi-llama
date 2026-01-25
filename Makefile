@@ -35,13 +35,13 @@ client:
 	@cd client && npm install && npm run build
 
 up:
-	docker-compose up -d
+	docker compose up -d
 
 down:
-	docker-compose down
+	docker compose down
 
 logs:
-	docker-compose logs -f
+	docker compose logs -f
 
 clean:
 	rm -rf models/*.gguf
