@@ -39,6 +39,11 @@ def root():
     return {"status": "ok", "service": "memory-api"}
 
 
+@app.get("/health")
+def health():
+    return {"status": "healthy"}
+
+
 @app.post("/memories")
 async def create_memory(memory: MemoryCreate):
     """Save a new memory."""

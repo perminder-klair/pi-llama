@@ -7,10 +7,14 @@ services:
       - ./configs/nginx-gateway.conf:/etc/nginx/nginx.conf:ro
       - ./client/.output/public:/static:ro
     depends_on:
-      - llama-server
-      - memory-api
-      - whisper
-      - tts
+      llama-server:
+        condition: service_healthy
+      memory-api:
+        condition: service_healthy
+      whisper:
+        condition: service_healthy
+      tts:
+        condition: service_healthy
 
   llama-server:
     image: ghcr.io/ggml-org/llama.cpp:server
@@ -39,6 +43,11 @@ services:
     depends_on:
       llama-server:
         condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:4000/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
 
   # Speech-to-Text (Whisper) - CPU optimized
   whisper:
@@ -48,6 +57,12 @@ services:
     environment:
       - ASR_MODEL=small
       - ASR_ENGINE=faster_whisper
+    healthcheck:
+      test: ["CMD-SHELL", "wget --spider -q http://localhost:9000/ || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 60s
 
   # Text-to-Speech (Piper) - CPU optimized
   tts:
@@ -55,6 +70,12 @@ services:
     volumes:
       - tts-voices:/app/voices
       - tts-config:/app/config
+    healthcheck:
+      test: ["CMD-SHELL", "wget --spider -q http://localhost:8000/ || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 60s
 
 volumes:
   memory-data:
