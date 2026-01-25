@@ -36,7 +36,7 @@ client:
 	@cd client && npm install && npm run build
 
 up:
-	docker compose up -d
+	docker compose up -d --build
 
 down:
 	docker compose down
