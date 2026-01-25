@@ -26,7 +26,7 @@ import { env } from '@/env'
 export const Route = createFileRoute('/')({
   component: Chat,
   head: () => ({
-    meta: [{ title: 'Pi Chat' }],
+    meta: [{ title: 'Llama Chat' }],
   }),
 })
 
@@ -501,7 +501,7 @@ function Chat() {
       {/* Header */}
       <div className="flex items-center justify-between p-4 border-b border-white/10">
         <div className="w-8" /> {/* Spacer for centering */}
-        <h1 className="text-lg font-medium">Pi Chat</h1>
+        <h1 className="text-lg font-medium">Llama Chat</h1>
         <VoiceSettings
           autoPlay={settings.autoPlay}
           onAutoPlayChange={(autoPlay) =>

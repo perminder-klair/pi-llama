@@ -18,9 +18,11 @@ function getVoskWsUrl(): string {
   if (typeof window === 'undefined') {
     return 'ws://localhost:3080/vosk/'
   }
+  const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:'
+  const port = window.location.port ? `:${window.location.port}` : ''
   return (
     import.meta.env.VITE_VOSK_WS_URL ||
-    `ws://${window.location.hostname}:${window.location.port}/vosk/`
+    `${protocol}//${window.location.hostname}${port}/vosk/`
   )
 }
 
