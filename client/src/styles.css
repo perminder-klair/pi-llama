@@ -2,6 +2,9 @@
 
 @import 'tw-animate-css';
 
+/* Syntax highlighting theme (atom-one-dark) */
+@import 'highlight.js/styles/atom-one-dark.css';
+
 @custom-variant dark (&:is(.dark *));
 
 body {

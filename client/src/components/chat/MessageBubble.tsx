@@ -1,8 +1,12 @@
 import { useState } from 'react'
 import ReactMarkdown from 'react-markdown'
-import { cn } from '@/lib/utils'
-import { ChevronDown, ChevronRight } from 'lucide-react'
+import rehypeHighlight from 'rehype-highlight'
+import remarkGfm from 'remark-gfm'
+
 import type { BaseMessage } from '@/lib/chat-types'
+import { cn } from '@/lib/utils'
+
+import { ChevronDown, ChevronRight } from 'lucide-react'
 
 interface MessageBubbleProps {
   message: BaseMessage
@@ -26,7 +30,11 @@ export function MessageBubble({ message, isLoading }: MessageBubbleProps) {
       ) : isUser ? (
         <div>{message.text}</div>
       ) : (
-        <ReactMarkdown className="prose prose-invert">
+        <ReactMarkdown
+          className="prose prose-invert"
+          remarkPlugins={[remarkGfm]}
+          rehypePlugins={[rehypeHighlight]}
+        >
           {message.text}
         </ReactMarkdown>
       )}
