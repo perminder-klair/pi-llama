@@ -48,10 +48,14 @@ clean:
 	rm -rf client/.output
 
 test-install:
-	pip install -r tests/requirements.txt
+	@if [ ! -d ".venv" ]; then \
+		echo "Creating virtual environment..."; \
+		python3 -m venv .venv; \
+	fi
+	.venv/bin/pip install -r tests/requirements.txt
 
 test:
-	pytest tests/ -v --tb=short
+	.venv/bin/pytest tests/ -v --tb=short
 
 test-health:
-	pytest tests/test_health.py -v
+	.venv/bin/pytest tests/test_health.py -v
