@@ -68,6 +68,9 @@ export function useAudioRecorder(): AudioRecorderState & AudioRecorderActions {
 
   const requestPermission = useCallback(async (): Promise<boolean> => {
     try {
+      if (!navigator?.mediaDevices?.getUserMedia) {
+        throw new Error('Microphone access requires HTTPS or localhost')
+      }
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
       stream.getTracks().forEach((track) => track.stop())
       setHasPermission(true)
@@ -85,6 +88,9 @@ export function useAudioRecorder(): AudioRecorderState & AudioRecorderActions {
       setError(null)
       chunksRef.current = []
 
+      if (!navigator?.mediaDevices?.getUserMedia) {
+        throw new Error('Microphone access requires HTTPS or localhost')
+      }
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
       streamRef.current = stream
       setHasPermission(true)

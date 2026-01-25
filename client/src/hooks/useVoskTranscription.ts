@@ -69,6 +69,9 @@ export function useVoskTranscription(): VoskTranscriptionState &
       setFinalText('')
 
       // Get microphone access
+      if (!navigator?.mediaDevices?.getUserMedia) {
+        throw new Error('Microphone access requires HTTPS or localhost')
+      }
       const stream = await navigator.mediaDevices.getUserMedia({
         audio: {
           channelCount: 1,
