@@ -3,15 +3,20 @@
 include .env
 export
 
-.PHONY: setup model client up down logs clean help
+.PHONY: setup model client up down logs clean help test-install test test-health
 
 help:
 	@echo "Pi-LLaMA Commands:"
-	@echo "  make setup  - First-time setup (download model + build client)"
-	@echo "  make up     - Start all services"
-	@echo "  make down   - Stop all services"
-	@echo "  make logs   - View logs"
-	@echo "  make clean  - Remove model and client build"
+	@echo "  make setup        - First-time setup (download model + build client)"
+	@echo "  make up           - Start all services"
+	@echo "  make down         - Stop all services"
+	@echo "  make logs         - View logs"
+	@echo "  make clean        - Remove model and client build"
+	@echo ""
+	@echo "Testing:"
+	@echo "  make test-install - Install test dependencies"
+	@echo "  make test         - Run all integration tests"
+	@echo "  make test-health  - Run health check tests only"
 
 setup: model client
 	@echo "Setup complete! Run 'make up' to start."
@@ -41,3 +46,12 @@ logs:
 clean:
 	rm -rf models/*.gguf
 	rm -rf client/.output
+
+test-install:
+	pip install -r tests/requirements.txt
+
+test:
+	pytest tests/ -v --tb=short
+
+test-health:
+	pytest tests/test_health.py -v
