@@ -9,16 +9,10 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as VoiceRouteImport } from './routes/voice'
 import { Route as ToolsRouteImport } from './routes/tools'
 import { Route as Qwen3RouteImport } from './routes/qwen3'
 import { Route as IndexRouteImport } from './routes/index'
 
-const VoiceRoute = VoiceRouteImport.update({
-  id: '/voice',
-  path: '/voice',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const ToolsRoute = ToolsRouteImport.update({
   id: '/tools',
   path: '/tools',
@@ -39,45 +33,34 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/qwen3': typeof Qwen3Route
   '/tools': typeof ToolsRoute
-  '/voice': typeof VoiceRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/qwen3': typeof Qwen3Route
   '/tools': typeof ToolsRoute
-  '/voice': typeof VoiceRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/qwen3': typeof Qwen3Route
   '/tools': typeof ToolsRoute
-  '/voice': typeof VoiceRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/qwen3' | '/tools' | '/voice'
+  fullPaths: '/' | '/qwen3' | '/tools'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/qwen3' | '/tools' | '/voice'
-  id: '__root__' | '/' | '/qwen3' | '/tools' | '/voice'
+  to: '/' | '/qwen3' | '/tools'
+  id: '__root__' | '/' | '/qwen3' | '/tools'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   Qwen3Route: typeof Qwen3Route
   ToolsRoute: typeof ToolsRoute
-  VoiceRoute: typeof VoiceRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/voice': {
-      id: '/voice'
-      path: '/voice'
-      fullPath: '/voice'
-      preLoaderRoute: typeof VoiceRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/tools': {
       id: '/tools'
       path: '/tools'
@@ -106,7 +89,6 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   Qwen3Route: Qwen3Route,
   ToolsRoute: ToolsRoute,
-  VoiceRoute: VoiceRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
